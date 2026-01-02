@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { directus, Habit, User, Log } from './lib/directus';
 import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
-import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff } from 'lucide-react';
+import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save } from 'lucide-react';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -15,6 +15,9 @@ function App() {
   const [activeTab, setActiveTab] = useState<'today' | 'calendar' | 'settings'>('today');
   const [selectedHabitId, setSelectedHabitId] = useState<string | number | null>(null);
   const [habitLogs, setHabitLogs] = useState<Log[]>([]);
+  const [isAddingNote, setIsAddingNote] = useState<string | number | null>(null);
+  const [noteText, setNoteText] = useState('');
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
 
   useEffect(() => {
     if (habits.length > 0 && !selectedHabitId) {
@@ -149,39 +152,41 @@ function App() {
     try {
       if (isCompleted) {
         // UNDO HABIT
-        // 1. Find and Delete Log
+        // 1. Find and Delete Log (both done and not_done with notes)
         const logs = await directus.request(readItems('logs', {
           filter: {
             _and: [
               { habit_id: { _eq: habitId } },
-              { date: { _eq: selectedDate } },
-              { status: { _eq: 'done' } }
+              { date: { _eq: selectedDate } }
             ]
           }
         }));
 
-        if (logs.length > 0) {
+        for (const log of logs) {
           // @ts-ignore
-          await directus.request(deleteItem('logs', logs[0].id));
+          await directus.request(deleteItem('logs', log.id));
         }
 
-        // 2. Update Habit Streak (only if it's today)
+        // 2. Update Habit Streak (only if it's today and we are undoing a 'done' status)
+        const wasDone = logs.some(l => l.status === 'done');
         const isToday = selectedDate === new Date().toISOString().split('T')[0];
-        if (isToday) {
+        if (isToday && wasDone) {
           await directus.request(updateItem('habits', habitId as any, {
             streak: Math.max(0, (habit.streak || 0) - 1)
           }));
           setHabits(prev => prev.map(h => h.id === habitId ? { ...h, streak: Math.max(0, (h.streak || 0) - 1) } : h));
         }
 
-        // 3. Update User XP
-        await directus.request(updateItem('users', user.id as any, {
-          total_xp: Math.max(0, (user.total_xp || 0) - 10)
-        }));
+        // 3. Update User XP (only if it was done)
+        if (wasDone) {
+          await directus.request(updateItem('users', user.id as any, {
+            total_xp: Math.max(0, (user.total_xp || 0) - 10)
+          }));
+          setUser(prev => prev ? { ...prev, total_xp: Math.max(0, (prev.total_xp || 0) - 10) } : null);
+        }
 
         // Update local state
         setCompletedToday(prev => prev.filter(id => id !== habitId));
-        setUser(prev => prev ? { ...prev, total_xp: Math.max(0, (prev.total_xp || 0) - 10) } : null);
 
         WebApp.HapticFeedback.notificationOccurred('warning');
       } else {
@@ -217,6 +222,51 @@ function App() {
     } catch (error) {
       console.error('Error toggling habit:', error);
       WebApp.showAlert('Failed to update habit');
+    }
+  };
+
+  const saveNote = async (habitId: string | number) => {
+    if (!user || !noteText.trim()) return;
+    try {
+      // 1. Delete any existing log for this date/habit
+      const existingLogs = await directus.request(readItems('logs', {
+        filter: {
+          _and: [
+            { habit_id: { _eq: habitId } },
+            { date: { _eq: selectedDate } }
+          ]
+        }
+      }));
+
+      for (const log of existingLogs) {
+        // @ts-ignore
+        await directus.request(deleteItem('logs', log.id));
+      }
+
+      // 2. Create new log with status 'not_done' and note
+      await directus.request(createItem('logs', {
+        habit_id: habitId as any,
+        date: selectedDate,
+        status: 'not_done',
+        note: noteText.trim(),
+        xp_earned: 0
+      }));
+
+      setIsAddingNote(null);
+      setNoteText('');
+      WebApp.HapticFeedback.notificationOccurred('success');
+      
+      // Refresh logs if we are on calendar tab
+      if (activeTab === 'calendar') {
+        const logs = await directus.request(readItems('logs', {
+          filter: { habit_id: { _eq: selectedHabitId } },
+          limit: 100
+        }));
+        setHabitLogs(logs as Log[]);
+      }
+    } catch (error) {
+      console.error('Error saving note:', error);
+      WebApp.showAlert('Failed to save note');
     }
   };
 
@@ -356,23 +406,30 @@ function App() {
 
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const isDone = habitLogs.some(log => log.date.startsWith(dateStr) && log.status === 'done');
-      const isToday = d === now.getDate();
+      const log = habitLogs.find(l => l.date.startsWith(dateStr));
+      const isDone = log?.status === 'done';
+      const hasNote = log?.status === 'not_done' && log.note;
+      const isToday = d === now.getDate() && month === now.getMonth() && year === now.getFullYear();
+      const isSelected = selectedCalendarDay === dateStr;
 
       days.push(
         <div 
           key={d} 
-          className={`h-10 flex items-center justify-center rounded-lg text-sm relative ${
+          onClick={() => setSelectedCalendarDay(dateStr)}
+          className={`h-10 flex items-center justify-center rounded-lg text-sm relative cursor-pointer transition-all ${
             isDone ? 'bg-indigo-600 text-white font-bold' : 'bg-white text-slate-600'
-          } ${isToday && !isDone ? 'border-2 border-indigo-600' : ''}`}
+          } ${hasNote ? 'border-2 border-red-200' : ''} ${isToday && !isDone ? 'border-2 border-indigo-600' : ''} ${isSelected ? 'ring-2 ring-indigo-400 ring-offset-1' : ''}`}
         >
           {d}
           {isDone && <div className="absolute bottom-1 w-1 h-1 bg-white rounded-full" />}
+          {hasNote && <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-400 rounded-full" />}
         </div>
       );
     }
 
     const monthName = now.toLocaleString('default', { month: 'long' });
+
+    const selectedDayLog = habitLogs.find(l => l.date.startsWith(selectedCalendarDay || ''));
 
     return (
       <div className="space-y-6">
@@ -412,13 +469,33 @@ function App() {
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
             <p className="text-xs text-slate-400 uppercase font-bold mb-1">Habit XP (Month)</p>
-            <p className="text-2xl font-bold text-indigo-600">{habitLogs.length * 10}</p>
+            <p className="text-2xl font-bold text-indigo-600">{habitLogs.filter(l => l.status === 'done').length * 10}</p>
           </div>
           <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
             <p className="text-xs text-slate-400 uppercase font-bold mb-1">Days Done</p>
-            <p className="text-2xl font-bold text-green-600">{habitLogs.length}</p>
+            <p className="text-2xl font-bold text-green-600">{habitLogs.filter(l => l.status === 'done').length}</p>
           </div>
         </div>
+
+        {selectedCalendarDay && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 animate-in fade-in slide-in-from-top-2">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="font-bold text-slate-800">
+                {new Date(selectedCalendarDay).toLocaleDateString('default', { month: 'short', day: 'numeric' })}
+              </h4>
+              <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                selectedDayLog?.status === 'done' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+              }`}>
+                {selectedDayLog?.status === 'done' ? 'Completed' : 'Missed'}
+              </span>
+            </div>
+            {selectedDayLog?.note ? (
+              <p className="text-slate-600 text-sm italic">"{selectedDayLog.note}"</p>
+            ) : (
+              <p className="text-slate-400 text-sm">No notes for this day.</p>
+            )}
+          </div>
+        )}
       </div>
     );
   };
@@ -573,17 +650,28 @@ function App() {
                   <span className="text-indigo-100 text-sm">Current Streak</span>
                   <span className="text-2xl font-bold">{focusHabit.streak} days</span>
                 </div>
-                <button 
-                  onClick={() => toggleHabit(focusHabit.id)}
-                  className={`p-3 rounded-xl font-bold flex items-center gap-2 active:scale-95 transition-all ${
-                    completedToday.includes(focusHabit.id) 
-                    ? 'bg-indigo-400 text-white' 
-                    : 'bg-white text-indigo-600'
-                  }`}
-                >
-                  <CheckCircle2 className="w-6 h-6" />
-                  {completedToday.includes(focusHabit.id) ? 'Done' : 'Complete'}
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button 
+                    onClick={() => toggleHabit(focusHabit.id)}
+                    className={`p-3 rounded-xl font-bold flex items-center gap-2 active:scale-95 transition-all ${
+                      completedToday.includes(focusHabit.id) 
+                      ? 'bg-indigo-400 text-white' 
+                      : 'bg-white text-indigo-600'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-6 h-6" />
+                    {completedToday.includes(focusHabit.id) ? 'Done' : 'Complete'}
+                  </button>
+                  {!completedToday.includes(focusHabit.id) && (
+                    <button 
+                      onClick={() => setIsAddingNote(focusHabit.id)}
+                      className="text-indigo-200 text-xs font-bold flex items-center justify-center gap-1 hover:text-white transition-colors"
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      Add Note
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -594,25 +682,34 @@ function App() {
         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Other Habits</h3>
         <div className="space-y-3">
           {otherHabits.map(habit => (
-            <div 
-              key={habit.id} 
-              onClick={() => toggleHabit(habit.id)}
-              className="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm border border-slate-100 active:scale-[0.98] transition-transform cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center">
-                  {completedToday.includes(habit.id) ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  ) : (
-                    <Circle className="w-5 h-5 text-slate-300" />
-                  )}
+            <div key={habit.id} className="space-y-2">
+              <div 
+                onClick={() => toggleHabit(habit.id)}
+                className="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm border border-slate-100 active:scale-[0.98] transition-transform cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center">
+                    {completedToday.includes(habit.id) ? (
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-slate-300" />
+                    )}
+                  </div>
+                  <div>
+                    <h4 className={`font-semibold ${completedToday.includes(habit.id) ? 'text-slate-400 line-through' : ''}`}>
+                      {habit.name}
+                    </h4>
+                    <p className="text-xs text-slate-400">{habit.streak} day streak</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className={`font-semibold ${completedToday.includes(habit.id) ? 'text-slate-400 line-through' : ''}`}>
-                    {habit.name}
-                  </h4>
-                  <p className="text-xs text-slate-400">{habit.streak} day streak</p>
-                </div>
+                {!completedToday.includes(habit.id) && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setIsAddingNote(habit.id); }}
+                    className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -625,6 +722,33 @@ function App() {
           </button>
         </div>
       </section>
+
+      {isAddingNote && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-in zoom-in-95">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-slate-800">Why was it missed?</h3>
+              <button onClick={() => setIsAddingNote(null)} className="p-1 bg-slate-100 rounded-full">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <textarea
+              autoFocus
+              placeholder="Enter a reason..."
+              className="w-full p-3 bg-slate-50 rounded-xl border-2 border-slate-100 focus:border-indigo-600 outline-none mb-4 min-h-[100px] text-sm"
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+            />
+            <button 
+              onClick={() => isAddingNote && saveNote(isAddingNote)}
+              className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            >
+              <Save className="w-4 h-4" />
+              Save Note
+            </button>
+          </div>
+        </div>
+      )}
 
       {isAddingHabit && (
         <div className="fixed inset-0 bg-black/50 flex items-end z-50">
