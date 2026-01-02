@@ -259,7 +259,7 @@ function App() {
       WebApp.HapticFeedback.notificationOccurred('success');
       
       // Refresh logs if we are on calendar tab
-      if (activeTab === 'calendar') {
+      if (activeTab === 'calendar' && selectedHabitId) {
         const logs = await directus.request(readItems('logs', {
           filter: { habit_id: { _eq: selectedHabitId } },
           limit: 100
@@ -451,7 +451,7 @@ function App() {
         <header className="flex justify-between items-center">
           <h2 className="text-xl font-bold">Progress</h2>
           <select 
-            value={selectedHabitId || ''} 
+            value={selectedHabitId ?? ''} 
             onChange={(e) => setSelectedHabitId(e.target.value)}
             className="bg-white border border-slate-200 rounded-lg px-3 py-1 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
           >
