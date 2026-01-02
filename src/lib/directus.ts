@@ -26,6 +26,7 @@ export interface User {
   total_xp: number;
   reminder_enabled: boolean;
   reminder_time: string | null;
+  timezone: string | null;
 }
 
 interface Schema {

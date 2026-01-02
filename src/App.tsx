@@ -55,57 +55,46 @@ function App() {
       const tgUser = WebApp.initDataUnsafe.user;
       
       // For development: use a mock user if not in Telegram
-      const userId = tgUser?.id.toString() || 'dev_user_123';
+      const telegramId = tgUser?.id.toString() || 'dev_user_123';
       const username = tgUser?.username || tgUser?.first_name || 'Dev User';
 
-      console.log('Initializing for user:', { userId, username });
+      console.log('Initializing for user:', { telegramId, username });
       
       // 1. Find or Create User in Directus
       let directusUser: User;
-      let users: User[] = [];
+      const currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       
       try {
-        console.log('Fetching user with telegram_id:', userId);
-        // Use a direct fetch to test if it's an SDK issue or CORS
-        const url = `https://directus-production-8063.up.railway.app/items/users?filter[telegram_id][_eq]=${userId}`;
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': 'Bearer e8_Dvaln7O6vTobil6uBOzO74GsSJ_2i'
+        console.log('Fetching user with telegram_id:', telegramId);
+        const users = await directus.request(readItems('users', {
+          filter: { telegram_id: { _eq: telegramId } }
+        }));
+        
+        if (users.length === 0) {
+          console.log('Creating new user in DB...');
+          const newUser = {
+            telegram_id: telegramId,
+            username: username,
+            total_xp: 0,
+            reminder_enabled: false,
+            reminder_time: '09:00',
+            timezone: currentTimezone
+          };
+          directusUser = await directus.request(createItem('users', newUser)) as User;
+        } else {
+          directusUser = users[0];
+          // Update timezone if it changed or is missing
+          if (directusUser.timezone !== currentTimezone) {
+            directusUser = await directus.request(updateItem('users', directusUser.id as any, {
+              timezone: currentTimezone
+            })) as User;
           }
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.errors?.[0]?.message || `HTTP ${response.status}`);
         }
-        
-        const result = await response.json();
-        users = result.data as User[];
-        console.log('User fetch response:', users);
+        setUser(directusUser);
       } catch (err: any) {
-        console.error('Detailed fetch error:', err);
+        console.error('User fetch/create error:', err);
         throw new Error(`Database connection failed: ${err.message}`);
       }
-
-      if (users.length === 0) {
-        console.log('Creating new user in DB...');
-        try {
-          // Ensure we don't send an empty string for telegram_id if it's a mock user
-          const newUser = {
-            telegram_id: userId,
-            username: username,
-            total_xp: 0
-          };
-          console.log('Creating user with payload:', newUser);
-          directusUser = await directus.request(createItem('users', newUser)) as User;
-        } catch (err: any) {
-          console.error('Failed to create user:', err);
-          throw new Error(`Failed to create user record: ${err.message}`);
-        }
-      } else {
-        directusUser = users[0];
-      }
-      setUser(directusUser);
 
       // 2. Fetch habits for this user
       try {
@@ -129,7 +118,6 @@ function App() {
         setCompletedToday(userDateLogs.map(log => log.habit_id));
       } catch (err: any) {
         console.error('Failed to fetch habits/logs:', err);
-        // Don't throw here, just log. User might have no habits yet.
       }
 
     } catch (error: any) {
@@ -535,12 +523,20 @@ function App() {
                 </div>
                 <div className="flex items-center gap-3">
                   {user?.reminder_enabled && (
-                    <input 
-                      type="time" 
+                    <select 
                       value={user.reminder_time || '09:00'}
                       onChange={(e) => updateGlobalReminder(true, e.target.value)}
-                      className="text-sm border border-slate-200 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
+                      className="text-sm border border-slate-200 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                    >
+                      {Array.from({ length: 24 }).map((_, i) => {
+                        const hour = String(i).padStart(2, '0');
+                        return (
+                          <option key={hour} value={`${hour}:00`}>
+                            {hour}:00
+                          </option>
+                        );
+                      })}
+                    </select>
                   )}
                   <button 
                     onClick={() => updateGlobalReminder(!user?.reminder_enabled, user?.reminder_time || '09:00')}
@@ -828,34 +824,6 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-50 p-4 pb-24 font-sans text-slate-900">
       {renderContent()}
-
-      {isAddingHabit && (
-        <div className="fixed inset-0 bg-black/50 flex items-end z-50">
-          <div className="bg-white w-full rounded-t-3xl p-6 animate-in slide-in-from-bottom">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold">New Habit</h3>
-              <button onClick={() => setIsAddingHabit(false)} className="p-2 bg-slate-100 rounded-full">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <input
-              autoFocus
-              type="text"
-              placeholder="What habit do you want to build?"
-              className="w-full p-4 bg-slate-50 rounded-xl border-2 border-slate-100 focus:border-indigo-600 outline-none mb-6"
-              value={newHabitName}
-              onChange={(e) => setNewHabitName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addHabit()}
-            />
-            <button 
-              onClick={addHabit}
-              className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
-            >
-              Create Habit
-            </button>
-          </div>
-        </div>
-      )}
 
       <nav className="fixed bottom-6 left-4 right-4 bg-white/80 backdrop-blur-md border border-slate-200 rounded-2xl p-2 flex justify-around shadow-lg z-40">
         <button 
