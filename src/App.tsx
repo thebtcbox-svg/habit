@@ -32,12 +32,16 @@ function App() {
         let users: User[] = [];
         
         try {
-          users = await directus.request(readItems('users', {
+          console.log('Fetching user with telegram_id:', userId);
+          const response = await directus.request(readItems('users', {
             filter: { telegram_id: { _eq: userId } }
-          })) as User[];
+          }));
+          users = response as User[];
+          console.log('User fetch response:', users);
         } catch (err: any) {
-          console.error('Failed to fetch user:', err);
-          throw new Error(`Database connection failed: ${err.message || 'Check your Directus URL and Token'}`);
+          console.error('Detailed fetch error:', err);
+          const errorMsg = err.errors?.[0]?.message || err.message || 'Unknown error';
+          throw new Error(`Database connection failed: ${errorMsg}`);
         }
 
         if (users.length === 0) {
