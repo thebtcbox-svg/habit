@@ -540,7 +540,11 @@ function App() {
         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Other Habits</h3>
         <div className="space-y-3">
           {otherHabits.map(habit => (
-            <div key={habit.id} className="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm border border-slate-100">
+            <div 
+              key={habit.id} 
+              onClick={() => toggleHabit(habit.id)}
+              className="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm border border-slate-100 active:scale-[0.98] transition-transform cursor-pointer"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center">
                   {completedToday.includes(habit.id) ? (
@@ -556,14 +560,6 @@ function App() {
                   <p className="text-xs text-slate-400">{habit.streak} day streak</p>
                 </div>
               </div>
-              <button 
-                onClick={() => toggleHabit(habit.id)}
-                className={`transition-colors ${
-                  completedToday.includes(habit.id) ? 'text-green-500' : 'text-slate-300 hover:text-indigo-600'
-                }`}
-              >
-                <CheckCircle2 className="w-6 h-6" />
-              </button>
             </div>
           ))}
           <button 
