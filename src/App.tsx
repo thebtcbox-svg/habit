@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { directus, Habit, User, Log } from './lib/directus';
 import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
-import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save } from 'lucide-react';
+import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check } from 'lucide-react';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -18,6 +18,8 @@ function App() {
   const [isAddingNote, setIsAddingNote] = useState<string | number | null>(null);
   const [noteText, setNoteText] = useState('');
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
+  const [editingHabitId, setEditingHabitId] = useState<string | number | null>(null);
+  const [editingHabitName, setEditingHabitName] = useState('');
 
   useEffect(() => {
     if (habits.length > 0 && !selectedHabitId) {
@@ -388,6 +390,19 @@ function App() {
     }
   };
 
+  const renameHabit = async (habitId: string | number) => {
+    if (!editingHabitName.trim()) return;
+    try {
+      await directus.request(updateItem('habits', habitId as any, { name: editingHabitName.trim() }));
+      setHabits(prev => prev.map(h => h.id === habitId ? { ...h, name: editingHabitName.trim() } : h));
+      setEditingHabitId(null);
+      WebApp.HapticFeedback.notificationOccurred('success');
+    } catch (error) {
+      console.error('Error renaming habit:', error);
+      WebApp.showAlert('Failed to rename habit');
+    }
+  };
+
   const renderCalendar = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -551,23 +566,51 @@ function App() {
               {habits.map((habit) => (
                 <div key={habit.id} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-1">
                       <button 
                         onClick={() => setFocusHabit(habit.id)}
                         className={`p-1 rounded-md transition-colors ${habit.is_focus ? 'text-yellow-500' : 'text-slate-300 hover:text-yellow-500'}`}
                       >
                         <Star className={`w-5 h-5 ${habit.is_focus ? 'fill-yellow-500' : ''}`} />
                       </button>
-                      <span className={`font-bold ${habit.is_focus ? 'text-indigo-600' : 'text-slate-700'}`}>
-                        {habit.name}
-                      </span>
+                      {editingHabitId === habit.id ? (
+                        <input 
+                          autoFocus
+                          type="text"
+                          value={editingHabitName}
+                          onChange={(e) => setEditingHabitName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && renameHabit(habit.id)}
+                          className="flex-1 text-sm border-b-2 border-indigo-600 outline-none py-1"
+                        />
+                      ) : (
+                        <span className={`font-bold ${habit.is_focus ? 'text-indigo-600' : 'text-slate-700'}`}>
+                          {habit.name}
+                        </span>
+                      )}
                     </div>
-                    <button 
-                      onClick={() => deleteHabit(habit.id)}
-                      className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {editingHabitId === habit.id ? (
+                        <button 
+                          onClick={() => renameHabit(habit.id)}
+                          className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
+                        >
+                          <Check className="w-5 h-5" />
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => { setEditingHabitId(habit.id); setEditingHabitName(habit.name); }}
+                          className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => deleteHabit(habit.id)}
+                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -740,7 +783,7 @@ function App() {
               onChange={(e) => setNoteText(e.target.value)}
             />
             <button 
-              onClick={() => isAddingNote && saveNote(isAddingNote)}
+              onClick={() => isAddingNote && saveNote(isAddingNote as any)}
               className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
               <Save className="w-4 h-4" />
