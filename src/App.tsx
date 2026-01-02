@@ -10,6 +10,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [completedToday, setCompletedToday] = useState<(string | number)[]>([]);
   const [activeTab, setActiveTab] = useState<'today' | 'calendar' | 'settings'>('today');
   const [selectedHabitId, setSelectedHabitId] = useState<string | number | null>(null);
@@ -41,109 +42,107 @@ function App() {
     }
   }, [activeTab, selectedHabitId]);
 
-  useEffect(() => {
-    const initApp = async () => {
+  const initApp = async () => {
+    try {
+      WebApp.ready();
+      WebApp.expand();
+
+      const tgUser = WebApp.initDataUnsafe.user;
+      
+      // For development: use a mock user if not in Telegram
+      const userId = tgUser?.id.toString() || 'dev_user_123';
+      const username = tgUser?.username || tgUser?.first_name || 'Dev User';
+
+      console.log('Initializing for user:', { userId, username });
+      
+      // 1. Find or Create User in Directus
+      let directusUser: User;
+      let users: User[] = [];
+      
       try {
-        WebApp.ready();
-        WebApp.expand();
-
-        const tgUser = WebApp.initDataUnsafe.user;
-        
-        // For development: use a mock user if not in Telegram
-        const userId = tgUser?.id.toString() || 'dev_user_123';
-        const username = tgUser?.username || tgUser?.first_name || 'Dev User';
-
-        console.log('Initializing for user:', { userId, username });
-        
-        // 1. Find or Create User in Directus
-        let directusUser: User;
-        let users: User[] = [];
-        
-        try {
-          console.log('Fetching user with telegram_id:', userId);
-          // Use a direct fetch to test if it's an SDK issue or CORS
-          const url = `https://directus-production-8063.up.railway.app/items/users?filter[telegram_id][_eq]=${userId}`;
-          const response = await fetch(url, {
-            headers: {
-              'Authorization': 'Bearer e8_Dvaln7O6vTobil6uBOzO74GsSJ_2i'
-            }
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.errors?.[0]?.message || `HTTP ${response.status}`);
+        console.log('Fetching user with telegram_id:', userId);
+        // Use a direct fetch to test if it's an SDK issue or CORS
+        const url = `https://directus-production-8063.up.railway.app/items/users?filter[telegram_id][_eq]=${userId}`;
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': 'Bearer e8_Dvaln7O6vTobil6uBOzO74GsSJ_2i'
           }
-          
-          const result = await response.json();
-          users = result.data as User[];
-          console.log('User fetch response:', users);
-        } catch (err: any) {
-          console.error('Detailed fetch error:', err);
-          throw new Error(`Database connection failed: ${err.message}`);
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.errors?.[0]?.message || `HTTP ${response.status}`);
         }
-
-        if (users.length === 0) {
-          console.log('Creating new user in DB...');
-          try {
-            // Ensure we don't send an empty string for telegram_id if it's a mock user
-            const newUser = {
-              telegram_id: userId,
-              username: username,
-              total_xp: 0
-            };
-            console.log('Creating user with payload:', newUser);
-            directusUser = await directus.request(createItem('users', newUser)) as User;
-          } catch (err: any) {
-            console.error('Failed to create user:', err);
-            throw new Error(`Failed to create user record: ${err.message}`);
-          }
-        } else {
-          directusUser = users[0];
-        }
-        setUser(directusUser);
-
-        // 2. Fetch habits for this user
-        try {
-          const fetchedHabits = await directus.request(readItems('habits', {
-            filter: { user_id: { _eq: directusUser.id } }
-          }));
-          setHabits(fetchedHabits as Habit[]);
-
-          // 3. Fetch today's logs to see what's completed
-          const today = new Date().toISOString().split('T')[0];
-          const todayLogs = await directus.request(readItems('logs', {
-            filter: {
-              _and: [
-                { date: { _eq: today } },
-                { status: { _eq: 'done' } }
-              ]
-            }
-          }));
-          
-          const userHabitIds = fetchedHabits.map(h => h.id);
-          const userTodayLogs = todayLogs.filter(log => userHabitIds.includes(log.habit_id));
-          setCompletedToday(userTodayLogs.map(log => log.habit_id));
-        } catch (err: any) {
-          console.error('Failed to fetch habits/logs:', err);
-          // Don't throw here, just log. User might have no habits yet.
-        }
-
-      } catch (error: any) {
-        console.error('Error initializing app:', error);
-        WebApp.showAlert(`Init Error: ${error.message}`);
-      } finally {
-        setLoading(false);
+        
+        const result = await response.json();
+        users = result.data as User[];
+        console.log('User fetch response:', users);
+      } catch (err: any) {
+        console.error('Detailed fetch error:', err);
+        throw new Error(`Database connection failed: ${err.message}`);
       }
-    };
 
+      if (users.length === 0) {
+        console.log('Creating new user in DB...');
+        try {
+          // Ensure we don't send an empty string for telegram_id if it's a mock user
+          const newUser = {
+            telegram_id: userId,
+            username: username,
+            total_xp: 0
+          };
+          console.log('Creating user with payload:', newUser);
+          directusUser = await directus.request(createItem('users', newUser)) as User;
+        } catch (err: any) {
+          console.error('Failed to create user:', err);
+          throw new Error(`Failed to create user record: ${err.message}`);
+        }
+      } else {
+        directusUser = users[0];
+      }
+      setUser(directusUser);
+
+      // 2. Fetch habits for this user
+      try {
+        const fetchedHabits = await directus.request(readItems('habits', {
+          filter: { user_id: { _eq: directusUser.id } }
+        }));
+        setHabits(fetchedHabits as Habit[]);
+
+        // 3. Fetch logs for selected date to see what's completed
+        const logs = await directus.request(readItems('logs', {
+          filter: {
+            _and: [
+              { date: { _eq: selectedDate } },
+              { status: { _eq: 'done' } }
+            ]
+          }
+        }));
+        
+        const userHabitIds = fetchedHabits.map(h => h.id);
+        const userDateLogs = logs.filter(log => userHabitIds.includes(log.habit_id));
+        setCompletedToday(userDateLogs.map(log => log.habit_id));
+      } catch (err: any) {
+        console.error('Failed to fetch habits/logs:', err);
+        // Don't throw here, just log. User might have no habits yet.
+      }
+
+    } catch (error: any) {
+      console.error('Error initializing app:', error);
+      WebApp.showAlert(`Init Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     initApp();
-  }, []);
+  }, [selectedDate]);
 
   const toggleHabit = async (habitId: string | number) => {
     if (!user) return;
 
     const isCompleted = completedToday.includes(habitId);
-    const today = new Date().toISOString().split('T')[0];
     const habit = habits.find(h => h.id === habitId);
     if (!habit) return;
 
@@ -155,7 +154,7 @@ function App() {
           filter: {
             _and: [
               { habit_id: { _eq: habitId } },
-              { date: { _eq: today } },
+              { date: { _eq: selectedDate } },
               { status: { _eq: 'done' } }
             ]
           }
@@ -166,10 +165,14 @@ function App() {
           await directus.request(deleteItem('logs', logs[0].id));
         }
 
-        // 2. Update Habit Streak
-        await directus.request(updateItem('habits', habitId as any, {
-          streak: Math.max(0, (habit.streak || 0) - 1)
-        }));
+        // 2. Update Habit Streak (only if it's today)
+        const isToday = selectedDate === new Date().toISOString().split('T')[0];
+        if (isToday) {
+          await directus.request(updateItem('habits', habitId as any, {
+            streak: Math.max(0, (habit.streak || 0) - 1)
+          }));
+          setHabits(prev => prev.map(h => h.id === habitId ? { ...h, streak: Math.max(0, (h.streak || 0) - 1) } : h));
+        }
 
         // 3. Update User XP
         await directus.request(updateItem('users', user.id as any, {
@@ -178,7 +181,6 @@ function App() {
 
         // Update local state
         setCompletedToday(prev => prev.filter(id => id !== habitId));
-        setHabits(prev => prev.map(h => h.id === habitId ? { ...h, streak: Math.max(0, (h.streak || 0) - 1) } : h));
         setUser(prev => prev ? { ...prev, total_xp: Math.max(0, (prev.total_xp || 0) - 10) } : null);
 
         WebApp.HapticFeedback.notificationOccurred('warning');
@@ -187,15 +189,19 @@ function App() {
         // 1. Create Log
         await directus.request(createItem('logs', {
           habit_id: habitId as any,
-          date: today,
+          date: selectedDate,
           status: 'done',
           xp_earned: 10
         }));
 
-        // 2. Update Habit Streak
-        await directus.request(updateItem('habits', habitId as any, {
-          streak: (habit.streak || 0) + 1
-        }));
+        // 2. Update Habit Streak (only if it's today)
+        const isToday = selectedDate === new Date().toISOString().split('T')[0];
+        if (isToday) {
+          await directus.request(updateItem('habits', habitId as any, {
+            streak: (habit.streak || 0) + 1
+          }));
+          setHabits(prev => prev.map(h => h.id === habitId ? { ...h, streak: (h.streak || 0) + 1 } : h));
+        }
 
         // 3. Update User XP
         await directus.request(updateItem('users', user.id as any, {
@@ -204,7 +210,6 @@ function App() {
 
         // Update local state
         setCompletedToday(prev => [...prev, habitId]);
-        setHabits(prev => prev.map(h => h.id === habitId ? { ...h, streak: (h.streak || 0) + 1 } : h));
         setUser(prev => prev ? { ...prev, total_xp: (prev.total_xp || 0) + 10 } : null);
 
         WebApp.HapticFeedback.notificationOccurred('success');
@@ -278,15 +283,37 @@ function App() {
   const deleteHabit = async (habitId: string | number) => {
     if (!user) return;
     
-    WebApp.showConfirm('Are you sure you want to delete this habit?', async (confirmed) => {
+    WebApp.showConfirm('Are you sure you want to delete this habit? All XP earned from this habit will be removed.', async (confirmed) => {
       if (confirmed) {
         try {
+          // 1. Count completions to subtract XP
+          const logs = await directus.request(readItems('logs', {
+            filter: { 
+              habit_id: { _eq: habitId },
+              status: { _eq: 'done' }
+            },
+            limit: -1
+          }));
+          
+          const xpToSubtract = logs.length * 10;
+
+          // 2. Update User XP
+          await directus.request(updateItem('users', user.id as any, {
+            total_xp: Math.max(0, (user.total_xp || 0) - xpToSubtract)
+          }));
+
+          // 3. Delete Habit
           // @ts-ignore
           await directus.request(deleteItem('habits', habitId));
+          
+          // Update local state
           setHabits(prev => prev.filter(h => h.id !== habitId));
+          setUser(prev => prev ? { ...prev, total_xp: Math.max(0, (prev.total_xp || 0) - xpToSubtract) } : null);
+          
           if (selectedHabitId === habitId) {
             setSelectedHabitId(habits.find(h => h.id !== habitId)?.id || null);
           }
+          
           WebApp.HapticFeedback.notificationOccurred('success');
         } catch (error) {
           console.error('Error deleting habit:', error);
@@ -494,12 +521,39 @@ function App() {
       );
     }
 
+    const changeDate = (days: number) => {
+      const date = new Date(selectedDate);
+      date.setDate(date.getDate() + days);
+      const newDateStr = date.toISOString().split('T')[0];
+      
+      // Don't allow future dates
+      if (newDateStr > new Date().toISOString().split('T')[0]) return;
+      
+      setSelectedDate(newDateStr);
+      WebApp.HapticFeedback.impactOccurred('light');
+    };
+
+    const isToday = selectedDate === new Date().toISOString().split('T')[0];
+    const displayDate = isToday ? 'Today' : new Date(selectedDate).toLocaleDateString('default', { month: 'short', day: 'numeric' });
+
     return (
       <>
         <header className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-2xl font-bold">Today</h1>
-            <p className="text-slate-500 text-sm">Keep the momentum going</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">{displayDate}</h1>
+              <div className="flex gap-1 ml-2">
+                <button onClick={() => changeDate(-1)} className="p-1 bg-white rounded-md border border-slate-100 shadow-sm active:scale-90 transition-transform">
+                  <ChevronLeft className="w-4 h-4 text-slate-400" />
+                </button>
+                {!isToday && (
+                  <button onClick={() => changeDate(1)} className="p-1 bg-white rounded-md border border-slate-100 shadow-sm active:scale-90 transition-transform">
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  </button>
+                )}
+              </div>
+            </div>
+            <p className="text-slate-500 text-sm">{isToday ? 'Keep the momentum going' : 'Log missed habits'}</p>
           </div>
           <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm border border-slate-100">
             <Trophy className="w-4 h-4 text-yellow-500" />
