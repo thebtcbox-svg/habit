@@ -4,7 +4,10 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "start": "vite preview --port ${PORT:-8080} --host"
   },
   "keywords": [],
   "author": "",
