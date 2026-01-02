@@ -33,7 +33,7 @@ interface Schema {
 }
 
 const directusUrl = import.meta.env.VITE_DIRECTUS_URL || 'https://directus-production-8063.up.railway.app';
-const directusToken = import.meta.env.VITE_DIRECTUS_TOKEN || 'hlkYCjKa0GlsxwiA7-mppFq5DSVusz1';
+const directusToken = import.meta.env.VITE_DIRECTUS_TOKEN || 'e8_Dvaln7O6vTobil6uBOzO74GsSJ_2i';
 
 export const directus = createDirectus<Schema>(directusUrl)
   .with(rest())
