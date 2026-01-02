@@ -228,8 +228,7 @@ function App() {
   };
 
   const saveNote = async (habitId: string | number | null) => {
-    if (!habitId) return;
-    if (!user || !noteText.trim()) return;
+    if (!habitId || !user || !noteText.trim()) return;
     try {
       // 1. Delete any existing log for this date/habit
       const existingLogs = await directus.request(readItems('logs', {
@@ -568,10 +567,10 @@ function App() {
                 <div key={habit.id} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-1">
-            <button 
-              onClick={() => isAddingNote && saveNote(isAddingNote as any)}
-              className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
-            >
+                      <button 
+                        onClick={() => setFocusHabit(habit.id)}
+                        className={`p-1 rounded-md transition-colors ${habit.is_focus ? 'text-yellow-500' : 'text-slate-300 hover:text-yellow-500'}`}
+                      >
                         <Star className={`w-5 h-5 ${habit.is_focus ? 'fill-yellow-500' : ''}`} />
                       </button>
                       {editingHabitId === habit.id ? (
@@ -784,7 +783,7 @@ function App() {
               onChange={(e) => setNoteText(e.target.value)}
             />
             <button 
-              onClick={() => isAddingNote && saveNote(isAddingNote as any)}
+              onClick={() => isAddingNote && saveNote(isAddingNote)}
               className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
               <Save className="w-4 h-4" />
