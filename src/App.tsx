@@ -29,47 +29,63 @@ function App() {
         
         // 1. Find or Create User in Directus
         let directusUser: User;
-        const users = await directus.request(readItems('users', {
-          filter: { telegram_id: { _eq: userId } }
-        }));
+        let users: User[] = [];
+        
+        try {
+          users = await directus.request(readItems('users', {
+            filter: { telegram_id: { _eq: userId } }
+          })) as User[];
+        } catch (err: any) {
+          console.error('Failed to fetch user:', err);
+          throw new Error(`Database connection failed: ${err.message || 'Check your Directus URL and Token'}`);
+        }
 
         if (users.length === 0) {
           console.log('Creating new user in DB...');
-          directusUser = await directus.request(createItem('users', {
-            telegram_id: userId,
-            username: username,
-            total_xp: 0
-          })) as User;
+          try {
+            directusUser = await directus.request(createItem('users', {
+              telegram_id: userId,
+              username: username,
+              total_xp: 0
+            })) as User;
+          } catch (err: any) {
+            console.error('Failed to create user:', err);
+            throw new Error(`Failed to create user record: ${err.message}`);
+          }
         } else {
-          directusUser = users[0] as User;
+          directusUser = users[0];
         }
         setUser(directusUser);
 
         // 2. Fetch habits for this user
-        const fetchedHabits = await directus.request(readItems('habits', {
-          filter: { user_id: { _eq: directusUser.id } }
-        }));
-        setHabits(fetchedHabits as Habit[]);
+        try {
+          const fetchedHabits = await directus.request(readItems('habits', {
+            filter: { user_id: { _eq: directusUser.id } }
+          }));
+          setHabits(fetchedHabits as Habit[]);
 
-        // 3. Fetch today's logs to see what's completed
-        const today = new Date().toISOString().split('T')[0];
-        const todayLogs = await directus.request(readItems('logs', {
-          filter: {
-            _and: [
-              { date: { _eq: today } },
-              { status: { _eq: 'done' } }
-            ]
-          }
-        }));
-        
-        // Only filter logs for habits that belong to this user
-        const userHabitIds = fetchedHabits.map(h => h.id);
-        const userTodayLogs = todayLogs.filter(log => userHabitIds.includes(log.habit_id));
-        setCompletedToday(userTodayLogs.map(log => log.habit_id));
+          // 3. Fetch today's logs to see what's completed
+          const today = new Date().toISOString().split('T')[0];
+          const todayLogs = await directus.request(readItems('logs', {
+            filter: {
+              _and: [
+                { date: { _eq: today } },
+                { status: { _eq: 'done' } }
+              ]
+            }
+          }));
+          
+          const userHabitIds = fetchedHabits.map(h => h.id);
+          const userTodayLogs = todayLogs.filter(log => userHabitIds.includes(log.habit_id));
+          setCompletedToday(userTodayLogs.map(log => log.habit_id));
+        } catch (err: any) {
+          console.error('Failed to fetch habits/logs:', err);
+          // Don't throw here, just log. User might have no habits yet.
+        }
 
       } catch (error: any) {
         console.error('Error initializing app:', error);
-        WebApp.showAlert(`Initialization error: ${error.message || 'Unknown error'}`);
+        WebApp.showAlert(`Init Error: ${error.message}`);
       } finally {
         setLoading(false);
       }
