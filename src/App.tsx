@@ -57,11 +57,14 @@ function App() {
         if (users.length === 0) {
           console.log('Creating new user in DB...');
           try {
-            directusUser = await directus.request(createItem('users', {
+            // Ensure we don't send an empty string for telegram_id if it's a mock user
+            const newUser = {
               telegram_id: userId,
               username: username,
               total_xp: 0
-            })) as User;
+            };
+            console.log('Creating user with payload:', newUser);
+            directusUser = await directus.request(createItem('users', newUser)) as User;
           } catch (err: any) {
             console.error('Failed to create user:', err);
             throw new Error(`Failed to create user record: ${err.message}`);
