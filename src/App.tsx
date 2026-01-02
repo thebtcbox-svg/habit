@@ -226,10 +226,11 @@ function App() {
 
         // 3. Update User XP (only if it was done)
         if (wasDone) {
+          const xpValue = habit.is_focus ? 25 : 10;
           await directus.request(updateItem('users', user.id as any, {
-            total_xp: Math.max(0, (user.total_xp || 0) - 10)
+            total_xp: Math.max(0, (user.total_xp || 0) - xpValue)
           }));
-          setUser(prev => prev ? { ...prev, total_xp: Math.max(0, (prev.total_xp || 0) - 10) } : null);
+          setUser(prev => prev ? { ...prev, total_xp: Math.max(0, (prev.total_xp || 0) - xpValue) } : null);
         }
 
         // Update local state
@@ -238,13 +239,14 @@ function App() {
         WebApp.HapticFeedback.notificationOccurred('warning');
       } else {
         // COMPLETE HABIT
+        const xpValue = habit.is_focus ? 25 : 10;
         // 1. Create Log
         await directus.request(createItem('logs', {
           habit_id: habitId as any,
           user_id: user.id as any,
           date: selectedDate,
           status: 'done',
-          xp_earned: 10
+          xp_earned: xpValue
         }));
 
         // 2. Update Habit Streak
@@ -261,12 +263,12 @@ function App() {
 
         // 3. Update User XP
         await directus.request(updateItem('users', user.id as any, {
-          total_xp: (user.total_xp || 0) + 10
+          total_xp: (user.total_xp || 0) + xpValue
         }));
 
         // Update local state
         setCompletedToday(prev => [...prev, habitId]);
-        setUser(prev => prev ? { ...prev, total_xp: (prev.total_xp || 0) + 10 } : null);
+        setUser(prev => prev ? { ...prev, total_xp: (prev.total_xp || 0) + xpValue } : null);
 
         WebApp.HapticFeedback.notificationOccurred('success');
       }
@@ -397,7 +399,9 @@ function App() {
             limit: -1
           }));
           
-          const xpToSubtract = logs.length * 10;
+          const habit = habits.find(h => h.id === habitId);
+          const xpValue = habit?.is_focus ? 25 : 10;
+          const xpToSubtract = logs.length * xpValue;
 
           // 2. Update User XP
           await directus.request(updateItem('users', user.id as any, {
@@ -800,7 +804,7 @@ function App() {
                     )}
                   </div>
                   <div>
-                    <h4 className={`font-semibold ${completedToday.includes(habit.id) ? 'text-slate-400 line-through' : ''}`}>
+                    <h4 className="font-semibold">
                       {habit.name}
                     </h4>
                     <p className="text-xs text-slate-400">{habit.streak} day streak</p>
