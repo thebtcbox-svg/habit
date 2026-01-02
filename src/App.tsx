@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { directus, Habit, User } from './lib/directus';
-import { readItems, createUser, readMe } from '@directus/sdk';
+import { readItems, createItem } from '@directus/sdk';
 import { CheckCircle2, Circle, Star, Trophy, Plus, Settings } from 'lucide-react';
 
 function App() {
@@ -14,13 +14,30 @@ function App() {
       try {
         const tgUser = WebApp.initDataUnsafe.user;
         if (tgUser) {
-          // In a real app, you'd authenticate with Directus using TG initData
-          // For now, we'll assume the user exists or create a placeholder
-          // This is where you'd implement the actual auth flow
           console.log('Telegram User:', tgUser);
           
-          // Fetch habits
-          const fetchedHabits = await directus.request(readItems('habits'));
+          // 1. Find or Create User in Directus
+          let directusUser: User;
+          const users = await directus.request(readItems('users', {
+            filter: { telegram_id: { _eq: tgUser.id.toString() } }
+          }));
+
+          if (users.length === 0) {
+            // Create new user
+            directusUser = await directus.request(createItem('users', {
+              telegram_id: tgUser.id.toString(),
+              username: tgUser.username || tgUser.first_name,
+              total_xp: 0
+            })) as User;
+          } else {
+            directusUser = users[0] as User;
+          }
+          setUser(directusUser);
+
+          // 2. Fetch habits for this user
+          const fetchedHabits = await directus.request(readItems('habits', {
+            filter: { user_id: { _eq: directusUser.id } }
+          }));
           setHabits(fetchedHabits as Habit[]);
         }
       } catch (error) {
