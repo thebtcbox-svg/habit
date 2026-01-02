@@ -16,48 +16,60 @@ function App() {
   useEffect(() => {
     const initApp = async () => {
       try {
+        WebApp.ready();
+        WebApp.expand();
+
         const tgUser = WebApp.initDataUnsafe.user;
-        if (tgUser) {
-          console.log('Telegram User:', tgUser);
-          
-          // 1. Find or Create User in Directus
-          let directusUser: User;
-          const users = await directus.request(readItems('users', {
-            filter: { telegram_id: { _eq: tgUser.id.toString() } }
-          }));
+        
+        // For development: use a mock user if not in Telegram
+        const userId = tgUser?.id.toString() || 'dev_user_123';
+        const username = tgUser?.username || tgUser?.first_name || 'Dev User';
 
-          if (users.length === 0) {
-            // Create new user
-            directusUser = await directus.request(createItem('users', {
-              telegram_id: tgUser.id.toString(),
-              username: tgUser.username || tgUser.first_name,
-              total_xp: 0
-            })) as User;
-          } else {
-            directusUser = users[0] as User;
-          }
-          setUser(directusUser);
+        console.log('Initializing for user:', { userId, username });
+        
+        // 1. Find or Create User in Directus
+        let directusUser: User;
+        const users = await directus.request(readItems('users', {
+          filter: { telegram_id: { _eq: userId } }
+        }));
 
-          // 2. Fetch habits for this user
-          const fetchedHabits = await directus.request(readItems('habits', {
-            filter: { user_id: { _eq: directusUser.id } }
-          }));
-          setHabits(fetchedHabits as Habit[]);
-
-          // 3. Fetch today's logs to see what's completed
-          const today = new Date().toISOString().split('T')[0];
-          const todayLogs = await directus.request(readItems('logs', {
-            filter: {
-              _and: [
-                { date: { _eq: today } },
-                { status: { _eq: 'done' } }
-              ]
-            }
-          }));
-          setCompletedToday(todayLogs.map(log => log.habit_id));
+        if (users.length === 0) {
+          console.log('Creating new user in DB...');
+          directusUser = await directus.request(createItem('users', {
+            telegram_id: userId,
+            username: username,
+            total_xp: 0
+          })) as User;
+        } else {
+          directusUser = users[0] as User;
         }
-      } catch (error) {
+        setUser(directusUser);
+
+        // 2. Fetch habits for this user
+        const fetchedHabits = await directus.request(readItems('habits', {
+          filter: { user_id: { _eq: directusUser.id } }
+        }));
+        setHabits(fetchedHabits as Habit[]);
+
+        // 3. Fetch today's logs to see what's completed
+        const today = new Date().toISOString().split('T')[0];
+        const todayLogs = await directus.request(readItems('logs', {
+          filter: {
+            _and: [
+              { date: { _eq: today } },
+              { status: { _eq: 'done' } }
+            ]
+          }
+        }));
+        
+        // Only filter logs for habits that belong to this user
+        const userHabitIds = fetchedHabits.map(h => h.id);
+        const userTodayLogs = todayLogs.filter(log => userHabitIds.includes(log.habit_id));
+        setCompletedToday(userTodayLogs.map(log => log.habit_id));
+
+      } catch (error: any) {
         console.error('Error initializing app:', error);
+        WebApp.showAlert(`Initialization error: ${error.message || 'Unknown error'}`);
       } finally {
         setLoading(false);
       }
