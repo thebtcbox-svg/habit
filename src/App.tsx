@@ -11,6 +11,7 @@ function App() {
   const [isAddingHabit, setIsAddingHabit] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
   const [completedToday, setCompletedToday] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'today' | 'stats' | 'settings'>('today');
 
   useEffect(() => {
     const initApp = async () => {
@@ -107,21 +108,27 @@ function App() {
     if (!user || !newHabitName.trim()) return;
 
     try {
-      const newHabit = await directus.request(createItem('habits', {
-        name: newHabitName,
+      const payload = {
+        name: newHabitName.trim(),
         user_id: user.id,
-        is_focus: habits.length === 0, // First habit is focus by default
+        is_focus: habits.length === 0,
         active: true,
         streak: 0
-      })) as Habit;
+      };
+      
+      const newHabit = await directus.request(createItem('habits', payload)) as Habit;
 
-      setHabits(prev => [...prev, newHabit]);
-      setNewHabitName('');
-      setIsAddingHabit(false);
-      WebApp.HapticFeedback.impactOccurred('medium');
-    } catch (error) {
+      if (newHabit) {
+        setHabits(prev => [...prev, newHabit]);
+        setNewHabitName('');
+        setIsAddingHabit(false);
+        WebApp.HapticFeedback.impactOccurred('medium');
+      }
+    } catch (error: any) {
       console.error('Error adding habit:', error);
-      WebApp.showAlert('Failed to add habit');
+      // Even if there's an error, let's log more info
+      const msg = error.errors?.[0]?.message || error.message || 'Unknown error';
+      WebApp.showAlert(`Failed to add habit: ${msg}`);
     }
   };
 
@@ -132,20 +139,55 @@ function App() {
   const focusHabit = habits.find(h => h.is_focus);
   const otherHabits = habits.filter(h => !h.is_focus);
 
-  return (
-    <div className="min-h-screen bg-slate-50 p-4 font-sans text-slate-900">
-      <header className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold">Today</h1>
-          <p className="text-slate-500 text-sm">Keep the momentum going</p>
+  const renderContent = () => {
+    if (activeTab === 'stats') {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <Trophy className="w-16 h-16 text-yellow-500 mb-4" />
+          <h2 className="text-xl font-bold mb-2">Leaderboard</h2>
+          <p className="text-slate-500">Coming soon! Compete with friends.</p>
         </div>
-        <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm border border-slate-100">
-          <Trophy className="w-4 h-4 text-yellow-500" />
-          <span className="font-semibold">{user?.total_xp || 0} XP</span>
-        </div>
-      </header>
+      );
+    }
 
-      {focusHabit && (
+    if (activeTab === 'settings') {
+      return (
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold">Settings</h2>
+          <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
+            <div className="flex items-center justify-between py-2">
+              <span>Username</span>
+              <span className="text-slate-400">{user?.username}</span>
+            </div>
+            <div className="flex items-center justify-between py-2 border-t border-slate-50">
+              <span>Telegram ID</span>
+              <span className="text-slate-400">{user?.telegram_id}</span>
+            </div>
+          </div>
+          <button 
+            onClick={() => WebApp.showAlert('Habit Tracker v1.0.0')}
+            className="w-full py-4 bg-white text-slate-600 rounded-xl font-medium border border-slate-100 shadow-sm"
+          >
+            App Version
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <header className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-2xl font-bold">Today</h1>
+            <p className="text-slate-500 text-sm">Keep the momentum going</p>
+          </div>
+          <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm border border-slate-100">
+            <Trophy className="w-4 h-4 text-yellow-500" />
+            <span className="font-semibold">{user?.total_xp || 0} XP</span>
+          </div>
+        </header>
+
+        {focusHabit && (
         <section className="mb-8">
           <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden">
             <Star className="absolute -right-4 -top-4 w-24 h-24 text-indigo-500 opacity-50" />
@@ -244,14 +286,59 @@ function App() {
         </div>
       )}
 
-      <nav className="fixed bottom-6 left-4 right-4 bg-white/80 backdrop-blur-md border border-slate-200 rounded-2xl p-2 flex justify-around shadow-lg">
-        <button className="p-3 text-indigo-600 bg-indigo-50 rounded-xl">
+      </>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 pb-24 font-sans text-slate-900">
+      {renderContent()}
+
+      {isAddingHabit && (
+        <div className="fixed inset-0 bg-black/50 flex items-end z-50">
+          <div className="bg-white w-full rounded-t-3xl p-6 animate-in slide-in-from-bottom">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold">New Habit</h3>
+              <button onClick={() => setIsAddingHabit(false)} className="p-2 bg-slate-100 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <input
+              autoFocus
+              type="text"
+              placeholder="What habit do you want to build?"
+              className="w-full p-4 bg-slate-50 rounded-xl border-2 border-slate-100 focus:border-indigo-600 outline-none mb-6"
+              value={newHabitName}
+              onChange={(e) => setNewHabitName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addHabit()}
+            />
+            <button 
+              onClick={addHabit}
+              className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
+            >
+              Create Habit
+            </button>
+          </div>
+        </div>
+      )}
+
+      <nav className="fixed bottom-6 left-4 right-4 bg-white/80 backdrop-blur-md border border-slate-200 rounded-2xl p-2 flex justify-around shadow-lg z-40">
+        <button 
+          onClick={() => setActiveTab('today')}
+          className={`p-3 rounded-xl transition-colors ${activeTab === 'today' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
+        >
           <CheckCircle2 className="w-6 h-6" />
         </button>
-        <button className="p-3 text-slate-400">
+        <button 
+          onClick={() => setActiveTab('stats')}
+          className={`p-3 rounded-xl transition-colors ${activeTab === 'stats' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
+        >
           <Trophy className="w-6 h-6" />
         </button>
-        <button className="p-3 text-slate-400">
+        <button 
+          onClick={() => setActiveTab('settings')}
+          className={`p-3 rounded-xl transition-colors ${activeTab === 'settings' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
+        >
           <Settings className="w-6 h-6" />
         </button>
       </nav>
