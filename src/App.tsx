@@ -227,7 +227,8 @@ function App() {
     }
   };
 
-  const saveNote = async (habitId: string | number) => {
+  const saveNote = async (habitId: string | number | null) => {
+    if (!habitId) return;
     if (!user || !noteText.trim()) return;
     try {
       // 1. Delete any existing log for this date/habit
