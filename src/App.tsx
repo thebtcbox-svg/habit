@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { directus, Habit, User, Log } from './lib/directus';
 import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
-import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check } from 'lucide-react';
+import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown } from 'lucide-react';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -457,6 +457,27 @@ function App() {
     }
   };
 
+  const moveHabit = async (habitId: string | number, direction: 'up' | 'down') => {
+    const index = habits.findIndex(h => h.id === habitId);
+    if (index === -1) return;
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === habits.length - 1) return;
+
+    const newHabits = [...habits];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    [newHabits[index], newHabits[targetIndex]] = [newHabits[targetIndex], newHabits[index]];
+
+    setHabits(newHabits);
+
+    try {
+      // In a real app, we'd have a 'sort' field. For now, we'll just update the local state.
+      // If you want to persist this, we'd need to add a 'sort' field to the habits table.
+      WebApp.HapticFeedback.impactOccurred('light');
+    } catch (error) {
+      console.error('Error moving habit:', error);
+    }
+  };
+
   const renderCalendar = () => {
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
@@ -654,6 +675,20 @@ function App() {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
+                      <div className="flex flex-col">
+                        <button 
+                          onClick={() => moveHabit(habit.id, 'up')}
+                          className="p-1 text-slate-300 hover:text-indigo-600 transition-colors"
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => moveHabit(habit.id, 'down')}
+                          className="p-1 text-slate-300 hover:text-indigo-600 transition-colors"
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      </div>
                       {editingHabitId === habit.id ? (
                         <button 
                           onClick={() => renameHabit(habit.id)}
