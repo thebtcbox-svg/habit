@@ -1,18 +1,18 @@
 import { createDirectus, rest, staticToken } from '@directus/sdk';
 
 export interface Habit {
-  id: string;
+  id: string | number;
   name: string;
   is_focus: boolean;
   active: boolean;
-  user_id: string;
+  user_id: string | number;
   reminder_time: string | null;
   streak: number;
 }
 
 export interface Log {
-  id: string;
-  habit_id: string;
+  id: string | number;
+  habit_id: string | number;
   date: string;
   status: 'done' | 'not_done';
   note: string | null;
@@ -20,7 +20,7 @@ export interface Log {
 }
 
 export interface User {
-  id: string;
+  id: string | number;
   telegram_id: string;
   username: string;
   total_xp: number;

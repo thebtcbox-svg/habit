@@ -10,7 +10,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
-  const [completedToday, setCompletedToday] = useState<string[]>([]);
+  const [completedToday, setCompletedToday] = useState<(string | number)[]>([]);
   const [activeTab, setActiveTab] = useState<'today' | 'stats' | 'settings'>('today');
 
   useEffect(() => {
