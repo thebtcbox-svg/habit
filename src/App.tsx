@@ -76,11 +76,11 @@ function App() {
         const logs = await directus.request(readItems('logs', {
           filter: {
             _and: [
-              { habit_id: { _eq: selectedHabitId as any } },
-              { date: { _gte: startOfMonth as any } },
-              { date: { _lte: endOfMonth as any } }
+              { habit_id: { _eq: selectedHabitId } },
+              { date: { _gte: startOfMonth } },
+              { date: { _lte: endOfMonth } }
             ]
-          },
+          } as any,
           limit: 100
         }));
         setHabitLogs(logs as Log[]);
