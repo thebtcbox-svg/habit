@@ -384,7 +384,7 @@ function App() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-            <p className="text-xs text-slate-400 uppercase font-bold mb-1">Monthly XP</p>
+            <p className="text-xs text-slate-400 uppercase font-bold mb-1">Habit XP (Month)</p>
             <p className="text-2xl font-bold text-indigo-600">{habitLogs.length * 10}</p>
           </div>
           <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
