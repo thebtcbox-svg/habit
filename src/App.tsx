@@ -33,15 +33,25 @@ function App() {
         
         try {
           console.log('Fetching user with telegram_id:', userId);
-          const response = await directus.request(readItems('users', {
-            filter: { telegram_id: { _eq: userId } }
-          }));
-          users = response as User[];
+          // Use a direct fetch to test if it's an SDK issue or CORS
+          const url = `https://directus-production-8063.up.railway.app/items/users?filter[telegram_id][_eq]=${userId}`;
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': 'Bearer e8_Dvaln7O6vTobil6uBOzO74GsSJ_2i'
+            }
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.errors?.[0]?.message || `HTTP ${response.status}`);
+          }
+          
+          const result = await response.json();
+          users = result.data as User[];
           console.log('User fetch response:', users);
         } catch (err: any) {
           console.error('Detailed fetch error:', err);
-          const errorMsg = err.errors?.[0]?.message || err.message || 'Unknown error';
-          throw new Error(`Database connection failed: ${errorMsg}`);
+          throw new Error(`Database connection failed: ${err.message}`);
         }
 
         if (users.length === 0) {
