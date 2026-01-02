@@ -32,8 +32,8 @@ interface Schema {
   users: User[];
 }
 
-const directusUrl = import.meta.env.VITE_DIRECTUS_URL || 'http://localhost:8055';
-const directusToken = import.meta.env.VITE_DIRECTUS_TOKEN || '';
+const directusUrl = import.meta.env.VITE_DIRECTUS_URL || 'https://directus-production-8063.up.railway.app';
+const directusToken = import.meta.env.VITE_DIRECTUS_TOKEN || 'hlkYCjKa0GlsxwiA7-mppFq5DSVusz1';
 
 export const directus = createDirectus<Schema>(directusUrl)
   .with(rest())
