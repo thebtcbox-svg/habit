@@ -24,6 +24,8 @@ export interface User {
   telegram_id: string;
   username: string;
   total_xp: number;
+  reminder_enabled: boolean;
+  reminder_time: string | null;
 }
 
 interface Schema {

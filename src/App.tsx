@@ -296,14 +296,18 @@ function App() {
     });
   };
 
-  const updateReminder = async (habitId: string | number, time: string | null) => {
+  const updateGlobalReminder = async (enabled: boolean, time: string | null) => {
+    if (!user) return;
     try {
-      await directus.request(updateItem('habits', habitId as any, { reminder_time: time }));
-      setHabits(prev => prev.map(h => h.id === habitId ? { ...h, reminder_time: time } : h));
+      await directus.request(updateItem('users', user.id as any, { 
+        reminder_enabled: enabled,
+        reminder_time: time 
+      }));
+      setUser(prev => prev ? { ...prev, reminder_enabled: enabled, reminder_time: time } : null);
       WebApp.HapticFeedback.impactOccurred('light');
     } catch (error) {
-      console.error('Error updating reminder:', error);
-      WebApp.showAlert('Failed to update reminder');
+      console.error('Error updating global reminder:', error);
+      WebApp.showAlert('Failed to update reminder settings');
     }
   };
 
@@ -403,11 +407,46 @@ function App() {
           <h2 className="text-xl font-bold">Settings</h2>
           
           <section>
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Global Reminder</h3>
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-700">
+                  {user?.reminder_enabled ? <Bell className="w-5 h-5 text-indigo-500" /> : <BellOff className="w-5 h-5 text-slate-300" />}
+                  <span className="font-semibold">Daily Reminder</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {user?.reminder_enabled && (
+                    <input 
+                      type="time" 
+                      value={user.reminder_time || '09:00'}
+                      onChange={(e) => updateGlobalReminder(true, e.target.value)}
+                      className="text-sm border border-slate-200 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  )}
+                  <button 
+                    onClick={() => updateGlobalReminder(!user?.reminder_enabled, user?.reminder_time || '09:00')}
+                    className={`text-xs font-bold px-4 py-2 rounded-full transition-all active:scale-95 ${
+                      user?.reminder_enabled 
+                      ? 'bg-red-50 text-red-600' 
+                      : 'bg-indigo-600 text-white shadow-md shadow-indigo-100'
+                    }`}
+                  >
+                    {user?.reminder_enabled ? 'Disable' : 'Enable'}
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 mt-3">
+                Receive a notification via our Telegram bot to keep your streaks alive.
+              </p>
+            </div>
+          </section>
+
+          <section>
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Manage Habits</h3>
             <div className="space-y-3">
               {habits.map((habit) => (
                 <div key={habit.id} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={() => setFocusHabit(habit.id)}
@@ -425,33 +464,6 @@ function App() {
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                      {habit.reminder_time ? <Bell className="w-4 h-4 text-indigo-500" /> : <BellOff className="w-4 h-4" />}
-                      <span>Reminders</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {habit.reminder_time && (
-                        <input 
-                          type="time" 
-                          value={habit.reminder_time}
-                          onChange={(e) => updateReminder(habit.id, e.target.value)}
-                          className="text-sm border border-slate-200 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500"
-                        />
-                      )}
-                      <button 
-                        onClick={() => updateReminder(habit.id, habit.reminder_time ? null : '09:00')}
-                        className={`text-xs font-bold px-3 py-1 rounded-full transition-colors ${
-                          habit.reminder_time 
-                          ? 'bg-red-50 text-red-600' 
-                          : 'bg-indigo-50 text-indigo-600'
-                        }`}
-                      >
-                        {habit.reminder_time ? 'Disable' : 'Enable'}
-                      </button>
-                    </div>
                   </div>
                 </div>
               ))}
