@@ -13,6 +13,7 @@ export interface Habit {
 export interface Log {
   id: string | number;
   habit_id: string | number;
+  user_id: string | number;
   date: string;
   status: 'done' | 'not_done';
   note: string | null;

@@ -20,6 +20,44 @@ function App() {
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
   const [editingHabitId, setEditingHabitId] = useState<string | number | null>(null);
   const [editingHabitName, setEditingHabitName] = useState('');
+  const [calendarDate, setCalendarDate] = useState(new Date());
+
+  const calculateStreak = (habitId: string | number, allLogs: Log[]) => {
+    const habitLogs = allLogs
+      .filter(l => l.habit_id === habitId && l.status === 'done')
+      .map(l => l.date.split('T')[0])
+      .sort((a, b) => b.localeCompare(a));
+
+    if (habitLogs.length === 0) return 0;
+
+    const uniqueDates = Array.from(new Set(habitLogs));
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    // If the most recent log is not today or yesterday, the streak is broken
+    if (uniqueDates[0] !== today && uniqueDates[0] !== yesterdayStr) {
+      return 0;
+    }
+
+    let streak = 0;
+    let currentDate = new Date(uniqueDates[0]);
+
+    for (let i = 0; i < uniqueDates.length; i++) {
+      const logDate = uniqueDates[i];
+      const expectedDateStr = currentDate.toISOString().split('T')[0];
+
+      if (logDate === expectedDateStr) {
+        streak++;
+        currentDate.setDate(currentDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  };
 
   useEffect(() => {
     if (habits.length > 0 && !selectedHabitId) {
@@ -32,8 +70,17 @@ function App() {
     const fetchLogs = async () => {
       if (!selectedHabitId) return;
       try {
+        const startOfMonth = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1).toISOString().split('T')[0];
+        const endOfMonth = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 0).toISOString().split('T')[0];
+
         const logs = await directus.request(readItems('logs', {
-          filter: { habit_id: { _eq: selectedHabitId } },
+          filter: {
+            _and: [
+              { habit_id: { _eq: selectedHabitId as any } },
+              { date: { _gte: startOfMonth as any } },
+              { date: { _lte: endOfMonth as any } }
+            ]
+          },
           limit: 100
         }));
         setHabitLogs(logs as Log[]);
@@ -45,7 +92,7 @@ function App() {
     if (activeTab === 'calendar') {
       fetchLogs();
     }
-  }, [activeTab, selectedHabitId]);
+  }, [activeTab, selectedHabitId, calendarDate]);
 
   const initApp = async () => {
     try {
@@ -101,20 +148,25 @@ function App() {
         const fetchedHabits = await directus.request(readItems('habits', {
           filter: { user_id: { _eq: directusUser.id } }
         }));
-        setHabits(fetchedHabits as Habit[]);
+
+        // Fetch ALL logs for streak calculation
+        const allLogs = await directus.request(readItems('logs', {
+          filter: { 
+            habit_id: { _in: fetchedHabits.map(h => h.id) as any[] },
+            status: { _eq: 'done' }
+          },
+          limit: -1
+        })) as Log[];
+
+        const habitsWithStreaks = fetchedHabits.map(h => ({
+          ...h,
+          streak: calculateStreak(h.id, allLogs)
+        }));
+
+        setHabits(habitsWithStreaks as Habit[]);
 
         // 3. Fetch logs for selected date to see what's completed
-        const logs = await directus.request(readItems('logs', {
-          filter: {
-            _and: [
-              { date: { _eq: selectedDate } },
-              { status: { _eq: 'done' } }
-            ]
-          }
-        }));
-        
-        const userHabitIds = fetchedHabits.map(h => h.id);
-        const userDateLogs = logs.filter(log => userHabitIds.includes(log.habit_id));
+        const userDateLogs = allLogs.filter(log => log.date === selectedDate);
         setCompletedToday(userDateLogs.map(log => log.habit_id));
       } catch (err: any) {
         console.error('Failed to fetch habits/logs:', err);
@@ -157,14 +209,19 @@ function App() {
           await directus.request(deleteItem('logs', log.id));
         }
 
-        // 2. Update Habit Streak (only if it's today and we are undoing a 'done' status)
+        // 2. Update Habit Streak
         const wasDone = logs.some(l => l.status === 'done');
-        const isToday = selectedDate === new Date().toISOString().split('T')[0];
-        if (isToday && wasDone) {
+        if (wasDone) {
+          const allLogs = await directus.request(readItems('logs', {
+            filter: { habit_id: { _eq: habitId }, status: { _eq: 'done' } },
+            limit: -1
+          })) as Log[];
+          
+          const newStreak = calculateStreak(habitId, allLogs);
           await directus.request(updateItem('habits', habitId as any, {
-            streak: Math.max(0, (habit.streak || 0) - 1)
+            streak: newStreak
           }));
-          setHabits(prev => prev.map(h => h.id === habitId ? { ...h, streak: Math.max(0, (h.streak || 0) - 1) } : h));
+          setHabits(prev => prev.map(h => h.id === habitId ? { ...h, streak: newStreak } : h));
         }
 
         // 3. Update User XP (only if it was done)
@@ -184,19 +241,23 @@ function App() {
         // 1. Create Log
         await directus.request(createItem('logs', {
           habit_id: habitId as any,
+          user_id: user.id as any,
           date: selectedDate,
           status: 'done',
           xp_earned: 10
         }));
 
-        // 2. Update Habit Streak (only if it's today)
-        const isToday = selectedDate === new Date().toISOString().split('T')[0];
-        if (isToday) {
-          await directus.request(updateItem('habits', habitId as any, {
-            streak: (habit.streak || 0) + 1
-          }));
-          setHabits(prev => prev.map(h => h.id === habitId ? { ...h, streak: (h.streak || 0) + 1 } : h));
-        }
+        // 2. Update Habit Streak
+        const allLogs = await directus.request(readItems('logs', {
+          filter: { habit_id: { _eq: habitId }, status: { _eq: 'done' } },
+          limit: -1
+        })) as Log[];
+        
+        const newStreak = calculateStreak(habitId, allLogs);
+        await directus.request(updateItem('habits', habitId as any, {
+          streak: newStreak
+        }));
+        setHabits(prev => prev.map(h => h.id === habitId ? { ...h, streak: newStreak } : h));
 
         // 3. Update User XP
         await directus.request(updateItem('users', user.id as any, {
@@ -236,6 +297,7 @@ function App() {
       // 2. Create new log with status 'not_done' and note
       await directus.request(createItem('logs', {
         habit_id: habitId as any,
+        user_id: user.id as any,
         date: selectedDate,
         status: 'not_done',
         note: noteText.trim(),
@@ -392,21 +454,19 @@ function App() {
   };
 
   const renderCalendar = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     
     const days = [];
-    // Adjust for Monday start if needed, but standard is Sunday (0)
-    // Let's use Sunday start for simplicity or adjust to Monday
     const startOffset = firstDay === 0 ? 6 : firstDay - 1; // Monday start
 
     for (let i = 0; i < startOffset; i++) {
       days.push(<div key={`empty-${i}`} className="h-10" />);
     }
 
+    const now = new Date();
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const log = habitLogs.find(l => l.date.startsWith(dateStr));
@@ -430,9 +490,14 @@ function App() {
       );
     }
 
-    const monthName = now.toLocaleString('default', { month: 'long' });
+    const monthName = calendarDate.toLocaleString('default', { month: 'long' });
 
     const selectedDayLog = habitLogs.find(l => l.date.startsWith(selectedCalendarDay || ''));
+
+    const changeMonth = (offset: number) => {
+      const newDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + offset, 1);
+      setCalendarDate(newDate);
+    };
 
     return (
       <div className="space-y-6">
@@ -453,8 +518,8 @@ function App() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-slate-800">{monthName} {year}</h3>
             <div className="flex gap-2">
-              <button className="p-1 text-slate-400 hover:text-slate-600"><ChevronLeft className="w-5 h-5" /></button>
-              <button className="p-1 text-slate-400 hover:text-slate-600"><ChevronRight className="w-5 h-5" /></button>
+              <button onClick={() => changeMonth(-1)} className="p-1 text-slate-400 hover:text-slate-600"><ChevronLeft className="w-5 h-5" /></button>
+              <button onClick={() => changeMonth(1)} className="p-1 text-slate-400 hover:text-slate-600"><ChevronRight className="w-5 h-5" /></button>
             </div>
           </div>
           
