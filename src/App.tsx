@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { directus, Habit, User } from './lib/directus';
-import { readItems, createItem } from '@directus/sdk';
-import { CheckCircle2, Circle, Star, Trophy, Plus, Settings } from 'lucide-react';
+import { readItems, createItem, updateItem } from '@directus/sdk';
+import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X } from 'lucide-react';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAddingHabit, setIsAddingHabit] = useState(false);
+  const [newHabitName, setNewHabitName] = useState('');
+  const [completedToday, setCompletedToday] = useState<string[]>([]);
 
   useEffect(() => {
     const initApp = async () => {
@@ -39,6 +42,18 @@ function App() {
             filter: { user_id: { _eq: directusUser.id } }
           }));
           setHabits(fetchedHabits as Habit[]);
+
+          // 3. Fetch today's logs to see what's completed
+          const today = new Date().toISOString().split('T')[0];
+          const todayLogs = await directus.request(readItems('logs', {
+            filter: {
+              _and: [
+                { date: { _eq: today } },
+                { status: { _eq: 'done' } }
+              ]
+            }
+          }));
+          setCompletedToday(todayLogs.map(log => log.habit_id));
         }
       } catch (error) {
         console.error('Error initializing app:', error);
@@ -49,6 +64,66 @@ function App() {
 
     initApp();
   }, []);
+
+  const toggleHabit = async (habitId: string) => {
+    if (!user || completedToday.includes(habitId)) return;
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const habit = habits.find(h => h.id === habitId);
+      if (!habit) return;
+
+      // 1. Create Log
+      await directus.request(createItem('logs', {
+        habit_id: habitId,
+        date: today,
+        status: 'done',
+        xp_earned: 10
+      }));
+
+      // 2. Update Habit Streak
+      await directus.request(updateItem('habits', habitId, {
+        streak: (habit.streak || 0) + 1
+      }));
+
+      // 3. Update User XP
+      await directus.request(updateItem('users', user.id, {
+        total_xp: (user.total_xp || 0) + 10
+      }));
+
+      // Update local state
+      setCompletedToday(prev => [...prev, habitId]);
+      setHabits(prev => prev.map(h => h.id === habitId ? { ...h, streak: (h.streak || 0) + 1 } : h));
+      setUser(prev => prev ? { ...prev, total_xp: (prev.total_xp || 0) + 10 } : null);
+
+      WebApp.HapticFeedback.notificationOccurred('success');
+    } catch (error) {
+      console.error('Error completing habit:', error);
+      WebApp.showAlert('Failed to complete habit');
+    }
+  };
+
+  const addHabit = async () => {
+    if (!user || !newHabitName.trim()) return;
+
+    try {
+      const newHabit = await directus.request(createItem('habits', {
+        name: newHabitName,
+        user_id: user.id,
+        is_focus: habits.length === 0, // First habit is focus by default
+        active: true,
+        streak: 0
+      })) as Habit;
+
+      setHabits(prev => [...prev, newHabit]);
+      setNewHabitName('');
+      setIsAddingHabit(false);
+      WebApp.HapticFeedback.impactOccurred('medium');
+    } catch (error) {
+      console.error('Error adding habit:', error);
+      WebApp.showAlert('Failed to add habit');
+    }
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -66,7 +141,7 @@ function App() {
         </div>
         <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm border border-slate-100">
           <Trophy className="w-4 h-4 text-yellow-500" />
-          <span className="font-semibold">120 XP</span>
+          <span className="font-semibold">{user?.total_xp || 0} XP</span>
         </div>
       </header>
 
@@ -82,9 +157,17 @@ function App() {
                   <span className="text-indigo-100 text-sm">Current Streak</span>
                   <span className="text-2xl font-bold">{focusHabit.streak} days</span>
                 </div>
-                <button className="bg-white text-indigo-600 p-3 rounded-xl font-bold flex items-center gap-2 active:scale-95 transition-transform">
+                <button 
+                  onClick={() => toggleHabit(focusHabit.id)}
+                  disabled={completedToday.includes(focusHabit.id)}
+                  className={`p-3 rounded-xl font-bold flex items-center gap-2 active:scale-95 transition-all ${
+                    completedToday.includes(focusHabit.id) 
+                    ? 'bg-indigo-400 text-indigo-100 cursor-not-allowed' 
+                    : 'bg-white text-indigo-600'
+                  }`}
+                >
                   <CheckCircle2 className="w-6 h-6" />
-                  Done
+                  {completedToday.includes(focusHabit.id) ? 'Done' : 'Complete'}
                 </button>
               </div>
             </div>
@@ -99,24 +182,67 @@ function App() {
             <div key={habit.id} className="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm border border-slate-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center">
-                  <Circle className="w-5 h-5 text-slate-300" />
+                  {completedToday.includes(habit.id) ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <Circle className="w-5 h-5 text-slate-300" />
+                  )}
                 </div>
                 <div>
-                  <h4 className="font-semibold">{habit.name}</h4>
+                  <h4 className={`font-semibold ${completedToday.includes(habit.id) ? 'text-slate-400 line-through' : ''}`}>
+                    {habit.name}
+                  </h4>
                   <p className="text-xs text-slate-400">{habit.streak} day streak</p>
                 </div>
               </div>
-              <button className="text-slate-300 hover:text-indigo-600 transition-colors">
+              <button 
+                onClick={() => toggleHabit(habit.id)}
+                disabled={completedToday.includes(habit.id)}
+                className={`transition-colors ${
+                  completedToday.includes(habit.id) ? 'text-green-500' : 'text-slate-300 hover:text-indigo-600'
+                }`}
+              >
                 <CheckCircle2 className="w-6 h-6" />
               </button>
             </div>
           ))}
-          <button className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-medium flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors">
+          <button 
+            onClick={() => setIsAddingHabit(true)}
+            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-medium flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors"
+          >
             <Plus className="w-5 h-5" />
             Add Habit
           </button>
         </div>
       </section>
+
+      {isAddingHabit && (
+        <div className="fixed inset-0 bg-black/50 flex items-end z-50">
+          <div className="bg-white w-full rounded-t-3xl p-6 animate-in slide-in-from-bottom">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold">New Habit</h3>
+              <button onClick={() => setIsAddingHabit(false)} className="p-2 bg-slate-100 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <input
+              autoFocus
+              type="text"
+              placeholder="What habit do you want to build?"
+              className="w-full p-4 bg-slate-50 rounded-xl border-2 border-slate-100 focus:border-indigo-600 outline-none mb-6"
+              value={newHabitName}
+              onChange={(e) => setNewHabitName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addHabit()}
+            />
+            <button 
+              onClick={addHabit}
+              className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
+            >
+              Create Habit
+            </button>
+          </div>
+        </div>
+      )}
 
       <nav className="fixed bottom-6 left-4 right-4 bg-white/80 backdrop-blur-md border border-slate-200 rounded-2xl p-2 flex justify-around shadow-lg">
         <button className="p-3 text-indigo-600 bg-indigo-50 rounded-xl">
