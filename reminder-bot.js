@@ -1,4 +1,4 @@
-import { createDirectus, rest, staticToken, readItems } from '@directus/sdk';
+import { createDirectus, rest, staticToken, readItems, updateItem } from '@directus/sdk';
 import axios from 'axios';
 
 const directusUrl = process.env.VITE_DIRECTUS_URL || 'https://directus-production-8063.up.railway.app';
@@ -9,14 +9,14 @@ const directus = createDirectus(directusUrl)
   .with(rest())
   .with(staticToken(directusToken));
 
-const sentReminders = new Map(); // user_id -> last_sent_date_string
-
 async function sendReminder(user) {
   const today = new Date().toISOString().split('T')[0];
-  const lastSent = sentReminders.get(user.id);
+  const reminderKey = `${today}_${user.reminder_time}`;
   
-  if (lastSent === today) {
-    return; // Already sent today
+  // If we already sent a reminder for this specific date AND time setting, skip it.
+  // This allows a second reminder if the user changes their reminder_time to a later slot.
+  if (user.last_reminder_sent === reminderKey) {
+    return;
   }
 
   const message = `Hey ${user.username}! 🌟 Don't forget to log your habits today and keep your streak alive!`;
@@ -27,8 +27,12 @@ async function sendReminder(user) {
       chat_id: user.telegram_id,
       text: message
     });
-    console.log(`Reminder sent to ${user.username} (${user.telegram_id})`);
-    sentReminders.set(user.id, today);
+    console.log(`Reminder sent to ${user.username} (${user.telegram_id}) at ${user.reminder_time}`);
+    
+    // Update the user record in Directus to persist the sent date and time setting
+    await directus.request(updateItem('users', user.id, {
+      last_reminder_sent: reminderKey
+    }));
   } catch (error) {
     console.error(`Failed to send reminder to ${user.username}:`, error.response?.data || error.message);
   }

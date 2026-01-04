@@ -6,7 +6,6 @@ export interface Habit {
   is_focus: boolean;
   active: boolean;
   user_id: string | number;
-  reminder_time: string | null;
   streak: number;
   sort: number | null;
 }
@@ -29,6 +28,7 @@ export interface User {
   reminder_enabled: boolean;
   reminder_time: string | null;
   timezone: string | null;
+  last_reminder_sent: string | null;
 }
 
 interface Schema {
