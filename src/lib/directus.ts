@@ -8,6 +8,7 @@ export interface Habit {
   user_id: string | number;
   reminder_time: string | null;
   streak: number;
+  sort: number | null;
 }
 
 export interface Log {

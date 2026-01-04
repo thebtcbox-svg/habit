@@ -146,7 +146,8 @@ function App() {
       // 2. Fetch habits for this user
       try {
         const fetchedHabits = await directus.request(readItems('habits', {
-          filter: { user_id: { _eq: directusUser.id } }
+          filter: { user_id: { _eq: directusUser.id } },
+          sort: ['sort'] as any
         }));
 
         // Fetch ALL logs for streak calculation
@@ -333,7 +334,8 @@ function App() {
         user_id: user.id,
         is_focus: habits.length === 0,
         active: true,
-        streak: 0
+        streak: 0,
+        sort: habits.length > 0 ? Math.max(...habits.map(h => Number(h.sort || 0))) + 1 : 1
       };
       
       const newHabit = await directus.request(createItem('habits', payload)) as Habit;
@@ -465,16 +467,26 @@ function App() {
 
     const newHabits = [...habits];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    // Swap in local state
     [newHabits[index], newHabits[targetIndex]] = [newHabits[targetIndex], newHabits[index]];
-
-    setHabits(newHabits);
+    
+    // Update sort values based on new positions
+    const updatedHabits = newHabits.map((h, i) => ({ ...h, sort: i + 1 }));
+    setHabits(updatedHabits);
 
     try {
-      // In a real app, we'd have a 'sort' field. For now, we'll just update the local state.
-      // If you want to persist this, we'd need to add a 'sort' field to the habits table.
+      // Persist the new order to Directus
+      // We only need to update the two habits that swapped, or all of them to be safe
+      // Updating all ensures consistency
+      await Promise.all(updatedHabits.map(h => 
+        directus.request(updateItem('habits', h.id as any, { sort: h.sort }))
+      ));
+      
       WebApp.HapticFeedback.impactOccurred('light');
     } catch (error) {
       console.error('Error moving habit:', error);
+      WebApp.showAlert('Failed to save new order');
     }
   };
 
