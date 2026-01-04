@@ -61,12 +61,11 @@ async function checkReminders() {
           hour: '2-digit',
           minute: '2-digit',
           hour12: false
-        });
+        }).replace('.', ':'); // Ensure format is HH:mm even if locale uses dots
+
+        console.log(`- User ${user.username}: Local time ${userTimeStr}, Target ${user.reminder_time}, Last sent ${user.last_reminder_sent}`);
 
         // Check if the current time matches the reminder time
-        // We check if the current hour:minute matches the user's reminder_time
-        // To be more robust with the 30-min interval, we check if we are in the correct hour
-        // and if the reminder hasn't been sent today yet.
         if (userTimeStr === user.reminder_time) {
           await sendReminder(user);
         }
