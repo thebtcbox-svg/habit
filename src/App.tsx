@@ -94,31 +94,25 @@ function App() {
     }
   }, [activeTab, selectedHabitId, calendarDate]);
 
-  const initApp = async () => {
-    try {
-      WebApp.ready();
-      WebApp.expand();
-
-      const tgUser = WebApp.initDataUnsafe.user;
-      
-      // For development: use a mock user if not in Telegram
-      const telegramId = tgUser?.id.toString() || 'dev_user_123';
-      const username = tgUser?.username || tgUser?.first_name || 'Dev User';
-
-      console.log('Initializing for user:', { telegramId, username });
-      
-      // 1. Find or Create User in Directus
-      let directusUser: User;
-      const currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
+  // Initial load: User only
+  useEffect(() => {
+    const loadUser = async () => {
       try {
-        console.log('Fetching user with telegram_id:', telegramId);
+        WebApp.ready();
+        WebApp.expand();
+
+        const tgUser = WebApp.initDataUnsafe.user;
+        const telegramId = tgUser?.id.toString() || 'dev_user_123';
+        const username = tgUser?.username || tgUser?.first_name || 'Dev User';
+        const currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+        console.log('Fetching user:', telegramId);
         const users = await directus.request(readItems('users', {
           filter: { telegram_id: { _eq: telegramId } }
         }));
-        
+
+        let directusUser: User;
         if (users.length === 0) {
-          console.log('Creating new user in DB...');
           const newUser = {
             telegram_id: telegramId,
             username: username,
@@ -130,7 +124,6 @@ function App() {
           directusUser = await directus.request(createItem('users', newUser)) as User;
         } else {
           directusUser = users[0];
-          // Update timezone if it changed or is missing
           if (directusUser.timezone !== currentTimezone) {
             directusUser = await directus.request(updateItem('users', directusUser.id as any, {
               timezone: currentTimezone
@@ -138,33 +131,26 @@ function App() {
           }
         }
         setUser(directusUser);
-      } catch (err: any) {
-        console.error('User fetch/create error:', err);
-        throw new Error(`Database connection failed: ${err.message}`);
+      } catch (error: any) {
+        console.error('Error loading user:', error);
+        WebApp.showAlert(`Init Error: ${error.message}`);
       }
+    };
 
-      // 2. Fetch habits for this user
+    loadUser();
+  }, []);
+
+  // Fetch habits and logs when user or date changes
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchData = async () => {
       try {
-        let fetchedHabits = await directus.request(readItems('habits', {
-          filter: { user_id: { _eq: directusUser.id } },
+        const fetchedHabits = await directus.request(readItems('habits', {
+          filter: { user_id: { _eq: user.id } },
           sort: ['sort'] as any
-        })) as Habit[];
+        }));
 
-        // If some habits don't have a sort value, they might be at the end or missing depending on DB
-        // Let's ensure they all have sort values and update them if needed
-        const needsSortUpdate = fetchedHabits.some(h => h.sort === null);
-        if (needsSortUpdate) {
-          console.log('Some habits missing sort value, updating...');
-          fetchedHabits = await Promise.all(fetchedHabits.map(async (h, i) => {
-            if (h.sort === null) {
-              const updated = await directus.request(updateItem('habits', h.id as any, { sort: i + 1 })) as Habit;
-              return { ...h, sort: i + 1 };
-            }
-            return h;
-          }));
-        }
-
-        // Fetch ALL logs for streak calculation
         const allLogs = await directus.request(readItems('logs', {
           filter: { 
             habit_id: { _in: fetchedHabits.map(h => h.id) as any[] },
@@ -179,25 +165,17 @@ function App() {
         }));
 
         setHabits(habitsWithStreaks as Habit[]);
-
-        // 3. Fetch logs for selected date to see what's completed
         const userDateLogs = allLogs.filter(log => log.date === selectedDate);
         setCompletedToday(userDateLogs.map(log => log.habit_id));
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to fetch habits/logs:', err);
+      } finally {
+        setLoading(false);
       }
+    };
 
-    } catch (error: any) {
-      console.error('Error initializing app:', error);
-      WebApp.showAlert(`Init Error: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    initApp();
-  }, [selectedDate]);
+    fetchData();
+  }, [user?.id, selectedDate]);
 
   const toggleHabit = async (habitId: string | number) => {
     if (!user) return;
@@ -454,7 +432,7 @@ function App() {
       }));
       setUser(prev => prev ? { ...prev, reminder_enabled: enabled, reminder_time: time } : null);
       WebApp.HapticFeedback.impactOccurred('light');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating global reminder:', error);
       WebApp.showAlert('Failed to update reminder settings');
     }
