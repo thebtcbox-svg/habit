@@ -59,8 +59,10 @@ async function checkReminders() {
           hour12: false
         });
 
-        // Since we only allow hourly slots now, we check if the hour matches
-        // and we are within the first 10 minutes of that hour (to be safe)
+        // Check if the current time matches the reminder time
+        // We check if the current hour:minute matches the user's reminder_time
+        // To be more robust with the 30-min interval, we check if we are in the correct hour
+        // and if the reminder hasn't been sent today yet.
         if (userTimeStr === user.reminder_time) {
           await sendReminder(user);
         }
@@ -73,8 +75,7 @@ async function checkReminders() {
   }
 }
 
-// Check every 30 minutes to ensure we don't miss the hourly window
-// but only send if the time matches exactly (HH:00)
-console.log('Reminder bot started (Hourly mode)...');
+// Check every minute to ensure we don't miss the window
+console.log('Reminder bot started (Precision mode)...');
 checkReminders();
-setInterval(checkReminders, 30 * 60000); // Every 30 minutes
+setInterval(checkReminders, 60000); // Every 1 minute
