@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "start": "vite preview --port ${PORT:-8080} --host",
+    "start": "node reminder-bot.js & vite preview --port ${PORT:-8080} --host",
     "reminder-bot": "node reminder-bot.js"
   },
   "keywords": [],
