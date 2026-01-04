@@ -145,10 +145,24 @@ function App() {
 
       // 2. Fetch habits for this user
       try {
-        const fetchedHabits = await directus.request(readItems('habits', {
+        let fetchedHabits = await directus.request(readItems('habits', {
           filter: { user_id: { _eq: directusUser.id } },
           sort: ['sort'] as any
-        }));
+        })) as Habit[];
+
+        // If some habits don't have a sort value, they might be at the end or missing depending on DB
+        // Let's ensure they all have sort values and update them if needed
+        const needsSortUpdate = fetchedHabits.some(h => h.sort === null);
+        if (needsSortUpdate) {
+          console.log('Some habits missing sort value, updating...');
+          fetchedHabits = await Promise.all(fetchedHabits.map(async (h, i) => {
+            if (h.sort === null) {
+              const updated = await directus.request(updateItem('habits', h.id as any, { sort: i + 1 })) as Habit;
+              return { ...h, sort: i + 1 };
+            }
+            return h;
+          }));
+        }
 
         // Fetch ALL logs for streak calculation
         const allLogs = await directus.request(readItems('logs', {
