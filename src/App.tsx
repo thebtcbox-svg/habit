@@ -130,8 +130,8 @@ function App() {
             telegram_id: telegramId,
             username: username,
             total_xp: 0,
-            reminder_enabled: false,
-            reminder_time: '09:00',
+            reminder_enabled: true,
+            reminder_time: '20:00',
             timezone: currentTimezone
           };
           directusUser = await directus.request(createItem('users', newUser)) as User;
@@ -839,14 +839,28 @@ function App() {
       date.setDate(date.getDate() + days);
       const newDateStr = date.toISOString().split('T')[0];
       
+      const today = new Date().toISOString().split('T')[0];
+      
       // Don't allow future dates
-      if (newDateStr > new Date().toISOString().split('T')[0]) return;
+      if (newDateStr > today) return;
+
+      // Limit to 7 days back
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+      if (newDateStr < sevenDaysAgoStr) return;
       
       setSelectedDate(newDateStr);
       WebApp.HapticFeedback.impactOccurred('light');
     };
 
-    const isToday = selectedDate === new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+
+    const isToday = selectedDate === today;
+    const isSevenDaysAgo = selectedDate <= sevenDaysAgoStr;
     const displayDate = isToday ? 'Today' : new Date(selectedDate).toLocaleDateString('default', { month: 'short', day: 'numeric' });
 
     const currentXP = user?.total_xp || 0;
@@ -864,9 +878,11 @@ function App() {
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold">{displayDate}</h1>
               <div className="flex gap-1 ml-1">
-                <button onClick={() => changeDate(-1)} className="p-1 hover:bg-slate-100 rounded-md transition-colors">
-                  <ChevronLeft className="w-4 h-4 text-slate-400" />
-                </button>
+                {!isSevenDaysAgo && (
+                  <button onClick={() => changeDate(-1)} className="p-1 hover:bg-slate-100 rounded-md transition-colors">
+                    <ChevronLeft className="w-4 h-4 text-slate-400" />
+                  </button>
+                )}
                 {!isToday && (
                   <button onClick={() => changeDate(1)} className="p-1 hover:bg-slate-100 rounded-md transition-colors">
                     <ChevronRight className="w-4 h-4 text-slate-400" />
