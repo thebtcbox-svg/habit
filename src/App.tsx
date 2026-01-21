@@ -132,7 +132,9 @@ function App() {
             total_xp: 0,
             reminder_enabled: true,
             reminder_time: '20:00',
-            timezone: currentTimezone
+            timezone: currentTimezone,
+            premium: false,
+            donate: 0
           };
           directusUser = await directus.request(createItem('users', newUser)) as User;
         } else {

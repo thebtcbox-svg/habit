@@ -29,6 +29,8 @@ export interface User {
   reminder_time: string | null;
   timezone: string | null;
   last_reminder_sent: string | null;
+  premium: boolean;
+  donate: number;
 }
 
 interface Schema {

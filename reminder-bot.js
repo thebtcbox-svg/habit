@@ -104,8 +104,12 @@ async function handleUpdates() {
 
           if (user && user.length > 0) {
             const currentXP = user[0].total_xp || 0;
+            const currentDonations = user[0].donate || 0;
+
             await directus.request(updateItem('users', userId, {
-              total_xp: currentXP + xpBonus
+              total_xp: currentXP + xpBonus,
+              donate: currentDonations + starsAmount,
+              premium: true // Grant premium on any donation
             }));
             
             // Send a thank you message
