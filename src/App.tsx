@@ -3,6 +3,7 @@ import WebApp from '@twa-dev/sdk';
 import { directus, Habit, User, Log } from './lib/directus';
 import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
 import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -262,6 +263,15 @@ function App() {
         // Update local state
         setCompletedToday(prev => [...prev, habitId]);
         setUser(prev => prev ? { ...prev, total_xp: (prev.total_xp || 0) + xpValue } : null);
+
+        if (habit.is_focus) {
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#4f46e5', '#818cf8', '#c7d2fe']
+          });
+        }
 
         WebApp.HapticFeedback.notificationOccurred('success');
       }
