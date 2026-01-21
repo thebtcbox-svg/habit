@@ -55,7 +55,8 @@ app.post('/api/create-stars-invoice', async (req, res) => {
 // Serve static files from the Vite build in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist')));
-  app.get('*', (req, res) => {
+  // In Express 5, wildcards must be named (e.g., *any)
+  app.get('*any', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   });
 }
