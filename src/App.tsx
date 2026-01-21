@@ -796,8 +796,8 @@ function App() {
               </div>
               <h4 className="font-bold text-slate-800 mb-1">Like the app?</h4>
               <p className="text-xs text-slate-400 mb-4">Support development with Telegram Stars</p>
-              <div className="grid grid-cols-3 gap-2">
-                {[50, 100, 250].map((amount) => (
+              <div className="grid grid-cols-4 gap-2">
+                {[5, 50, 500, 1000].map((amount) => (
                   <button
                     key={amount}
                     onClick={() => handleSupport(amount)}
