@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { directus, Habit, User, Log } from './lib/directus';
 import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
-import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
+import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown, Sparkles, Heart } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import axios from 'axios';
 
 const getLevel = (xp: number) => Math.floor((1 + Math.sqrt(1 + 0.08 * xp)) / 2);
 const getXpForLevel = (level: number) => 50 * level * (level - 1);
@@ -468,6 +469,42 @@ function App() {
     }
   };
 
+  const handleSupport = async (starsAmount: number) => {
+    if (!user) return;
+    
+    try {
+      WebApp.MainButton.showProgress();
+      // In production, this URL should be your actual backend URL
+      const apiUrl = import.meta.env.PROD 
+        ? `${window.location.origin}/api/create-stars-invoice`
+        : `http://localhost:3001/api/create-stars-invoice`;
+
+      const response = await axios.post(apiUrl, {
+        amount: starsAmount,
+        userId: user.id
+      });
+
+      if (response.data.url) {
+        WebApp.openInvoice(response.data.url, (status) => {
+          if (status === 'paid') {
+            WebApp.showAlert('Thank you for your support! 🌟');
+            confetti({
+              particleCount: 150,
+              spread: 70,
+              origin: { y: 0.6 },
+              colors: ['#fbbf24', '#f59e0b', '#fff']
+            });
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Support error:', error);
+      WebApp.showAlert('Failed to initiate support process');
+    } finally {
+      WebApp.MainButton.hideProgress();
+    }
+  };
+
   const renameHabit = async (habitId: string | number) => {
     if (!editingHabitName.trim()) return;
     try {
@@ -748,6 +785,28 @@ function App() {
                   </div>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Support Project</h3>
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 text-center">
+              <div className="w-12 h-12 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Heart className="w-6 h-6 text-pink-500 fill-pink-500" />
+              </div>
+              <h4 className="font-bold text-slate-800 mb-1">Like the app?</h4>
+              <p className="text-xs text-slate-400 mb-4">Support development with Telegram Stars</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[50, 100, 250].map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => handleSupport(amount)}
+                    className="py-2 px-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-sm font-bold transition-colors border border-indigo-100"
+                  >
+                    ⭐ {amount}
+                  </button>
+                ))}
+              </div>
             </div>
           </section>
 
