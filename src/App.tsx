@@ -472,9 +472,13 @@ function App() {
   };
 
   const handleShare = () => {
-    const shareText = "Check out this Telegram Habit Tracker! 📈 Simple, effective, and works right inside Telegram. @habitappw_bot";
-    // switchInlineQuery opens the native chat picker
-    WebApp.switchInlineQuery(shareText);
+    const shareText = "Check out this Telegram Habit Tracker! 📈 Simple, effective, and works right inside Telegram.";
+    const botUrl = "https://t.me/habitappw_bot";
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(shareText)}`;
+    
+    // Using openTelegramLink with a share URL is more reliable than switchInlineQuery
+    // as it doesn't require inline mode to be enabled for the bot.
+    WebApp.openTelegramLink(shareUrl);
     WebApp.HapticFeedback.impactOccurred('light');
   };
 
