@@ -473,8 +473,8 @@ function App() {
 
   const handleShare = () => {
     const shareText = "Check out this Telegram Habit Tracker! 📈 Simple, effective, and works right inside Telegram. @habitappw_bot";
-    const fullUrl = `https://t.me/share/url?text=${encodeURIComponent(shareText)}`;
-    WebApp.openTelegramLink(fullUrl);
+    // switchInlineQuery opens the native chat picker
+    WebApp.switchInlineQuery(shareText);
     WebApp.HapticFeedback.impactOccurred('light');
   };
 
