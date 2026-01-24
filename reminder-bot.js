@@ -75,6 +75,21 @@ async function handleUpdates() {
 
     for (const update of updates) {
       lastUpdateId = update.update_id;
+
+      // Handle /start command
+      if (update.message?.text === '/start') {
+        const welcomeMessage = `Welcome! 🌟\n\nSuccess is built one habit at a time. We believe that focusing your energy on <b>one primary habit</b> while tracking your supporting ones is the secret to long-term growth.\n\nTap the <b>blue button</b> 📱 on the bottom left to open your tracker and start building your future!\n\n📌 <b>Tip:</b> Pin this bot to your chat list to stay consistent and never lose sight of your goals.`;
+
+        try {
+          await axios.post(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+            chat_id: update.message.chat.id,
+            text: welcomeMessage,
+            parse_mode: 'HTML'
+          });
+        } catch (error) {
+          console.error('Error sending welcome message:', error.response?.data || error.message);
+        }
+      }
       
       // Handle Pre-Checkout Query (Mandatory for payments)
       if (update.pre_checkout_query) {
