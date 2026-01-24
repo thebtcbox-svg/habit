@@ -923,31 +923,21 @@ function App() {
             </div>
             <p className="text-slate-500 text-sm">{isToday ? 'Keep the momentum going' : 'Log missed habits'}</p>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
+          <div className="flex flex-col items-end">
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100 mb-1.5">
               <Trophy className="w-4 h-4 text-yellow-500" />
               <span className="font-bold text-slate-700">Lvl {currentLevel}</span>
               <span className="text-slate-300 mx-1">|</span>
               <span className="font-semibold text-slate-600">{currentXP} XP</span>
             </div>
+            <div className="w-28 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-indigo-600 rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
         </header>
-
-        <section className="mb-8 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-indigo-500" />
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Level {currentLevel} Progress</span>
-            </div>
-            <span className="text-xs font-bold text-indigo-600">{xpInLevel} / {xpNeededForLevel} XP</span>
-          </div>
-          <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-indigo-600 rounded-full transition-all duration-1000 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </section>
 
         {focusHabit && (
         <section className="mb-8">
