@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { directus, Habit, User, Log } from './lib/directus';
 import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
-import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown, Sparkles, Heart } from 'lucide-react';
+import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown, Sparkles, Heart, Share2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import axios from 'axios';
 
@@ -471,6 +471,13 @@ function App() {
     }
   };
 
+  const handleShare = () => {
+    const shareText = "Check out this Telegram Habit Tracker! 📈 Simple, effective, and works right inside Telegram. @habitappw_bot";
+    const fullUrl = `https://t.me/share/url?text=${encodeURIComponent(shareText)}`;
+    WebApp.openTelegramLink(fullUrl);
+    WebApp.HapticFeedback.impactOccurred('light');
+  };
+
   const handleSupport = async (starsAmount: number) => {
     if (!user) return;
     
@@ -787,6 +794,24 @@ function App() {
                   </div>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Spread the Word</h3>
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 text-center">
+              <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Share2 className="w-6 h-6 text-indigo-500" />
+              </div>
+              <h4 className="font-bold text-slate-800 mb-1">Invite Friends</h4>
+              <p className="text-xs text-slate-400 mb-4">Help others build better habits too!</p>
+              <button
+                onClick={handleShare}
+                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md shadow-indigo-100"
+              >
+                <Share2 className="w-4 h-4" />
+                Share Bot
+              </button>
             </div>
           </section>
 
