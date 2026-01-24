@@ -923,18 +923,24 @@ function App() {
             </div>
             <p className="text-slate-500 text-sm">{isToday ? 'Keep the momentum going' : 'Log missed habits'}</p>
           </div>
-          <div className="flex flex-col items-end">
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100 mb-1.5">
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
               <Trophy className="w-4 h-4 text-yellow-500" />
-              <span className="font-bold text-slate-700">Lvl {currentLevel}</span>
+              <span className="font-bold text-slate-700 text-sm">Lvl {currentLevel}</span>
               <span className="text-slate-300 mx-1">|</span>
-              <span className="font-semibold text-slate-600">{currentXP} XP</span>
+              <span className="font-semibold text-slate-600 text-sm">{currentXP} XP</span>
             </div>
-            <div className="w-28 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-indigo-600 rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${progress}%` }}
-              />
+            <div className="w-36">
+              <div className="h-2 bg-slate-200/50 rounded-full overflow-hidden p-[1px] border border-slate-100 shadow-inner">
+                <div 
+                  className="h-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 rounded-full transition-all duration-1000 ease-out shadow-sm"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center mt-1 px-1">
+                <span className="text-[10px] font-black text-indigo-500/80 uppercase tracking-widest">{Math.round(progress)}%</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">{xpNeededForLevel - xpInLevel} XP LEFT</span>
+              </div>
             </div>
           </div>
         </header>
