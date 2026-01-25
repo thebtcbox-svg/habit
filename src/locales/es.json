@@ -1,0 +1,71 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "confirm": "¿Estás seguro?",
+    "done": "Hecho",
+    "complete": "Completar",
+    "missed": "Perdido",
+    "today": "Hoy"
+  },
+  "tabs": {
+    "today": "Hoy",
+    "progress": "Progreso",
+    "settings": "Ajustes"
+  },
+  "today": {
+    "momentum": "Mantén el impulso",
+    "logMissed": "Registra hábitos perdidos",
+    "focusHabit": "Hábito de Enfoque",
+    "currentStreak": "Racha Actual",
+    "otherHabits": "Otros Hábitos",
+    "addHabit": "Añadir Hábito",
+    "days": "días"
+  },
+  "progress": {
+    "title": "Progreso",
+    "habitXpMonth": "XP de Hábito (Mes)",
+    "daysDone": "Días Completados",
+    "noNotes": "No hay notas para este día."
+  },
+  "settings": {
+    "title": "Ajustes",
+    "globalReminder": "Recordatorio Global",
+    "dailyReminder": "Recordatorio Diario",
+    "reminderDesc": "Recibe una notificación a través de nuestro bot de Telegram para mantener tus rachas vivas.",
+    "manageHabits": "Gestionar Hábitos",
+    "spreadWord": "Corre la voz",
+    "inviteFriends": "Invitar Amigos",
+    "inviteDesc": "¡Ayuda a otros a construir mejores hábitos también!",
+    "shareBot": "Compartir Bot",
+    "supportProject": "Apoyar Proyecto",
+    "likeApp": "¿Te gusta la aplicación?",
+    "supportDesc": "Apoya el desarrollo con Estrellas de Telegram",
+    "account": "Cuenta",
+    "username": "Nombre de usuario",
+    "telegramId": "ID de Telegram",
+    "appVersion": "Versión de la App",
+    "language": "Idioma"
+  },
+  "habits": {
+    "newHabit": "Nuevo Hábito",
+    "placeholder": "¿Qué hábito quieres construir?",
+    "create": "Crear Hábito",
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar este hábito? Toda la XP ganada con este hábito será eliminada.",
+    "rename": "Renombrar hábito"
+  },
+  "notes": {
+    "title": "¿Por qué se perdió?",
+    "placeholder": "Introduce una razón...",
+    "save": "Guardar Nota"
+  },
+  "levelUp": {
+    "title": "¡NIVEL ALCANZADO!",
+    "reached": "Has alcanzado el Nivel {{level}}",
+    "milestone": "Nuevo Hito",
+    "keepCrushing": "¡Sigue aplastando tus objetivos!",
+    "continue": "Continuar Viaje"
+  }
+}

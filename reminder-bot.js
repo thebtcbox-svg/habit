@@ -27,6 +27,41 @@ const BOT_TRANSLATIONS = {
     support_thanks: `Спасибо за поддержку в {{amount}} звезд! 🌟 Вы получили бонус {{xp}} XP! Продолжайте в том же духе!`,
     invoice_title: "Поддержать Habit Tracker",
     invoice_desc: "Поддержите разработку с помощью {{amount}} Telegram Stars 🌟"
+  },
+  ar: {
+    welcome: `مرحباً بك! 🌟\n\nالنجاح يُبنى عادة تلو الأخرى. نحن نؤمن بأن تركيز طاقتك على <b>عادة أساسية واحدة</b> مع تتبع العادات الداعمة هو سر النمو على المدى الطويل.\n\nاضغط على <b>الزر الأزرق</b> 📱 في أسفل اليسار لفتح المتتبع والبدء في بناء مستقبلك!\n\n📌 <b>نصيحة:</b> قم بتثبيت هذا البوت في قائمة الدردشة لتظل مستمراً ولا تفقد أهدافك أبداً.`,
+    reminder: `أهلاً {{username}}! 🌟 لا تنسَ تسجيل عاداتك اليوم والحفاظ على سلسلتك مستمرة!`,
+    support_thanks: `شكراً لدعمك بـ {{amount}} من النجوم! 🌟 لقد حصلت على مكافأة {{xp}} XP! استمر في تحقيق أهدافك!`,
+    invoice_title: "دعم Habit Tracker",
+    invoice_desc: "دعم التطوير بـ {{amount}} من نجوم تليجرام 🌟"
+  },
+  es: {
+    welcome: `¡Bienvenido! 🌟\n\nEl éxito se construye hábito a hábito. Creemos que enfocar tu energía en <b>un hábito principal</b> mientras haces seguimiento de los secundarios es el secreto para el crecimiento a largo plazo.\n\n¡Toca el <b>botón azul</b> 📱 abajo a la izquierda para abrir tu rastreador y empezar a construir tu futuro!\n\n📌 <b>Consejo:</b> Ancla este bot a tu lista de chats para mantenerte constante y nunca perder de vista tus metas.`,
+    reminder: `¡Hola {{username}}! 🌟 ¡No olvides registrar tus hábitos hoy y mantener tu racha viva!`,
+    support_thanks: `¡Gracias por tu apoyo de {{amount}} Estrellas! 🌟 ¡Has sido recompensado con un bono de {{xp}} XP! ¡Sigue aplastando esos hábitos!`,
+    invoice_title: "Apoyar Habit Tracker",
+    invoice_desc: "Apoya el desarrollo con {{amount}} Estrellas de Telegram 🌟"
+  },
+  id: {
+    welcome: `Selamat datang! 🌟\n\nKesuksesan dibangun satu kebiasaan demi satu kebiasaan. Kami percaya bahwa memfokuskan energi Anda pada <b>satu kebiasaan utama</b> sambil melacak kebiasaan pendukung adalah rahasia pertumbuhan jangka panjang.\n\nKetuk <b>tombol biru</b> 📱 di kiri bawah untuk membuka pelacak Anda dan mulai membangun masa depan Anda!\n\n📌 <b>Tip:</b> Sematkan bot ini ke daftar obrolan Anda agar tetap konsisten dan tidak pernah melupakan tujuan Anda.`,
+    reminder: `Halo {{username}}! 🌟 Jangan lupa mencatat kebiasaanmu hari ini dan jaga streak-mu tetap hidup!`,
+    support_thanks: `Terima kasih atas dukunganmu sebesar {{amount}} Bintang! 🌟 Kamu telah dihadiahi bonus {{xp}} XP! Teruslah hancurkan targetmu!`,
+    invoice_title: "Dukung Habit Tracker",
+    invoice_desc: "Dukung pengembangan dengan {{amount}} Bintang Telegram 🌟"
+  },
+  fa: {
+    welcome: `خوش آمدید! 🌟\n\nموفقیت با ساختن یک عادت در هر زمان به دست می‌آید. ما معتقدیم که تمرکز انرژی بر روی <b>یک عادت اصلی</b> در حالی که عادت‌های حمایتی خود را دنبال می‌کنید، رمز رشد بلندمدت است.\n\nروی <b>دکمه آبی</b> 📱 در پایین سمت چپ بزنید تا ردیاب خود را باز کنید و ساختن آینده خود را شروع کنید!\n\n📌 <b>نکته:</b> این ربات را در لیست چت‌های خود پین کنید تا ثابت‌قدم بمانید و هرگز اهداف خود را گم نکنید.`,
+    reminder: `سلام {{username}}! 🌟 فراموش نکن که امروز عادت‌هات رو ثبت کنی و توالی خودت رو حفظ کنی!`,
+    support_thanks: `ممنون از حمایت شما با {{amount}} ستاره! 🌟 شما {{xp}} امتیاز پاداش گرفتید! به تلاش خود ادامه دهید!`,
+    invoice_title: "حمایت از Habit Tracker",
+    invoice_desc: "حمایت از توسعه با {{amount}} ستاره تلگرام 🌟"
+  },
+  uk: {
+    welcome: `Ласкаво просимо! 🌟\n\nУспіх будується по одній звичці за раз. Ми віримо, що зосередження вашої енергії на <b>одній основній звичці</b> під час відстеження допоміжних — це секрет довгострокового зростання.\n\nНатисніть <b>синю кнопку</b> 📱 знизу ліворуч, щоб відкрити свій трекер і почати будувати своє майбутнє!\n\n📌 <b>Порада:</b> Закріпіть цього бота у списку чатів, щоб залишатися послідовним і ніколи не втрачати свої цілі з виду.`,
+    reminder: `Привіт, {{username}}! 🌟 Не забудьте відмітити свої звички сьогодні, щоб зберегти серію!`,
+    support_thanks: `Дякуємо за вашу підтримку у {{amount}} зірок! 🌟 Ви отримали бонус {{xp}} XP! Продовжуйте в тому ж дусі!`,
+    invoice_title: "Підтримати Habit Tracker",
+    invoice_desc: "Підтримайте розробку за допомогою {{amount}} зірок Telegram 🌟"
   }
 };
 
@@ -110,7 +145,8 @@ async function handleUpdates() {
 
       // Handle /start command
       if (update.message?.text === '/start') {
-        const userLang = update.message.from.language_code === 'ru' ? 'ru' : 'en';
+        const langCode = update.message.from.language_code;
+        const userLang = BOT_TRANSLATIONS[langCode] ? langCode : 'en';
         const welcomeMessage = t(userLang, 'welcome');
 
         try {

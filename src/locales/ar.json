@@ -1,0 +1,71 @@
+{
+  "common": {
+    "loading": "جاري التحميل...",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "confirm": "هل أنت متأكد؟",
+    "done": "تم",
+    "complete": "مكتمل",
+    "missed": "فائت",
+    "today": "اليوم"
+  },
+  "tabs": {
+    "today": "اليوم",
+    "progress": "التقدم",
+    "settings": "الإعدادات"
+  },
+  "today": {
+    "momentum": "استمر في التقدم",
+    "logMissed": "تسجيل العادات الفائتة",
+    "focusHabit": "عادة التركيز",
+    "currentStreak": "السلسلة الحالية",
+    "otherHabits": "عادات أخرى",
+    "addHabit": "إضافة عادة",
+    "days": "أيام"
+  },
+  "progress": {
+    "title": "التقدم",
+    "habitXpMonth": "خبرة العادة (الشهر)",
+    "daysDone": "الأيام المكتملة",
+    "noNotes": "لا توجد ملاحظات لهذا اليوم."
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "globalReminder": "تذكير عام",
+    "dailyReminder": "تذكير يومي",
+    "reminderDesc": "تلقي إشعار عبر بوت تليجرام الخاص بنا للحفاظ على استمرارية سلسلتك.",
+    "manageHabits": "إدارة العادات",
+    "spreadWord": "انشر الخبر",
+    "inviteFriends": "دعوة الأصدقاء",
+    "inviteDesc": "ساعد الآخرين على بناء عادات أفضل أيضاً!",
+    "shareBot": "مشاركة البوت",
+    "supportProject": "دعم المشروع",
+    "likeApp": "هل أعجبك التطبيق؟",
+    "supportDesc": "دعم التطوير باستخدام نجوم تليجرام",
+    "account": "الحساب",
+    "username": "اسم المستخدم",
+    "telegramId": "معرف تليجرام",
+    "appVersion": "إصدار التطبيق",
+    "language": "اللغة"
+  },
+  "habits": {
+    "newHabit": "عادة جديدة",
+    "placeholder": "ما هي العادة التي تريد بناءها؟",
+    "create": "إنشاء عادة",
+    "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذه العادة؟ سيتم إزالة جميع نقاط الخبرة المكتسبة من هذه العادة.",
+    "rename": "إعادة تسمية العادة"
+  },
+  "notes": {
+    "title": "لماذا تم تفويتها؟",
+    "placeholder": "أدخل سبباً...",
+    "save": "حفظ الملاحظة"
+  },
+  "levelUp": {
+    "title": "ارتقاء في المستوى!",
+    "reached": "لقد وصلت إلى المستوى {{level}}",
+    "milestone": "إنجاز جديد",
+    "keepCrushing": "استمر في سحق أهدافك!",
+    "continue": "مواصلة الرحلة"
+  }
+}

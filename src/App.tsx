@@ -20,6 +20,10 @@ const STREAK_BONUSES: Record<number, number> = {
 function App() {
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    document.dir = i18n.dir();
+  }, [i18n.language]);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
@@ -773,6 +777,11 @@ function App() {
                 >
                   <option value="en">English</option>
                   <option value="ru">Русский</option>
+                  <option value="ar">العربية</option>
+                  <option value="es">Español</option>
+                  <option value="id">Bahasa Indonesia</option>
+                  <option value="fa">فارسی</option>
+                  <option value="uk">Українська</option>
                 </select>
               </div>
             </div>

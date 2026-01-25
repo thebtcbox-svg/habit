@@ -1,0 +1,71 @@
+{
+  "common": {
+    "loading": "Memuat...",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "delete": "Hapus",
+    "confirm": "Apakah Anda yakin?",
+    "done": "Selesai",
+    "complete": "Lengkap",
+    "missed": "Terlewat",
+    "today": "Hari Ini"
+  },
+  "tabs": {
+    "today": "Hari Ini",
+    "progress": "Kemajuan",
+    "settings": "Pengaturan"
+  },
+  "today": {
+    "momentum": "Jaga momentumnya",
+    "logMissed": "Catat kebiasaan yang terlewat",
+    "focusHabit": "Kebiasaan Fokus",
+    "currentStreak": "Streak Saat Ini",
+    "otherHabits": "Kebiasaan Lainnya",
+    "addHabit": "Tambah Kebiasaan",
+    "days": "hari"
+  },
+  "progress": {
+    "title": "Kemajuan",
+    "habitXpMonth": "XP Kebiasaan (Bulan)",
+    "daysDone": "Hari Selesai",
+    "noNotes": "Tidak ada catatan untuk hari ini."
+  },
+  "settings": {
+    "title": "Pengaturan",
+    "globalReminder": "Pengingat Global",
+    "dailyReminder": "Pengingat Harian",
+    "reminderDesc": "Terima notifikasi melalui bot Telegram kami untuk menjaga streak Anda tetap hidup.",
+    "manageHabits": "Kelola Kebiasaan",
+    "spreadWord": "Sebarkan Berita",
+    "inviteFriends": "Undang Teman",
+    "inviteDesc": "Bantu orang lain membangun kebiasaan yang lebih baik juga!",
+    "shareBot": "Bagikan Bot",
+    "supportProject": "Dukung Proyek",
+    "likeApp": "Suka aplikasinya?",
+    "supportDesc": "Dukung pengembangan dengan Telegram Stars",
+    "account": "Akun",
+    "username": "Nama Pengguna",
+    "telegramId": "ID Telegram",
+    "appVersion": "Versi Aplikasi",
+    "language": "Bahasa"
+  },
+  "habits": {
+    "newHabit": "Kebiasaan Baru",
+    "placeholder": "Kebiasaan apa yang ingin Anda bangun?",
+    "create": "Buat Kebiasaan",
+    "deleteConfirm": "Apakah Anda yakin ingin menghapus kebiasaan ini? Semua XP yang didapat dari kebiasaan ini akan dihapus.",
+    "rename": "Ubah nama kebiasaan"
+  },
+  "notes": {
+    "title": "Mengapa terlewat?",
+    "placeholder": "Masukkan alasan...",
+    "save": "Simpan Catatan"
+  },
+  "levelUp": {
+    "title": "NAIK LEVEL!",
+    "reached": "Anda telah mencapai Level {{level}}",
+    "milestone": "Pencapaian Baru",
+    "keepCrushing": "Teruslah hancurkan target Anda!",
+    "continue": "Lanjutkan Perjalanan"
+  }
+}
