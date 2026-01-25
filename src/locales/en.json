@@ -1,0 +1,71 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Are you sure?",
+    "done": "Done",
+    "complete": "Complete",
+    "missed": "Missed",
+    "today": "Today"
+  },
+  "tabs": {
+    "today": "Today",
+    "progress": "Progress",
+    "settings": "Settings"
+  },
+  "today": {
+    "momentum": "Keep the momentum going",
+    "logMissed": "Log missed habits",
+    "focusHabit": "Focus Habit",
+    "currentStreak": "Current Streak",
+    "otherHabits": "Other Habits",
+    "addHabit": "Add Habit",
+    "days": "days"
+  },
+  "progress": {
+    "title": "Progress",
+    "habitXpMonth": "Habit XP (Month)",
+    "daysDone": "Days Done",
+    "noNotes": "No notes for this day."
+  },
+  "settings": {
+    "title": "Settings",
+    "globalReminder": "Global Reminder",
+    "dailyReminder": "Daily Reminder",
+    "reminderDesc": "Receive a notification via our Telegram bot to keep your streaks alive.",
+    "manageHabits": "Manage Habits",
+    "spreadWord": "Spread the Word",
+    "inviteFriends": "Invite Friends",
+    "inviteDesc": "Help others build better habits too!",
+    "shareBot": "Share Bot",
+    "supportProject": "Support Project",
+    "likeApp": "Like the app?",
+    "supportDesc": "Support development with Telegram Stars",
+    "account": "Account",
+    "username": "Username",
+    "telegramId": "Telegram ID",
+    "appVersion": "App Version",
+    "language": "Language"
+  },
+  "habits": {
+    "newHabit": "New Habit",
+    "placeholder": "What habit do you want to build?",
+    "create": "Create Habit",
+    "deleteConfirm": "Are you sure you want to delete this habit? All XP earned from this habit will be removed.",
+    "rename": "Rename habit"
+  },
+  "notes": {
+    "title": "Why was it missed?",
+    "placeholder": "Enter a reason...",
+    "save": "Save Note"
+  },
+  "levelUp": {
+    "title": "LEVEL UP!",
+    "reached": "You've reached Level {{level}}",
+    "milestone": "New Milestone",
+    "keepCrushing": "Keep crushing your goals!",
+    "continue": "Continue Journey"
+  }
+}

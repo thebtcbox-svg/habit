@@ -31,6 +31,7 @@ export interface User {
   last_reminder_sent: string | null;
   premium: boolean;
   donate: number;
+  language: string;
 }
 
 interface Schema {

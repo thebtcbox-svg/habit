@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { directus, Habit, User, Log } from './lib/directus';
 import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
-import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown, Sparkles, Heart, Share2 } from 'lucide-react';
+import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown, Sparkles, Heart, Share2, Languages } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import confetti from 'canvas-confetti';
 import axios from 'axios';
 
@@ -17,6 +18,7 @@ const STREAK_BONUSES: Record<number, number> = {
 };
 
 function App() {
+  const { t, i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,6 +120,7 @@ function App() {
         const telegramId = tgUser?.id.toString() || 'dev_user_123';
         const username = tgUser?.username || tgUser?.first_name || 'Dev User';
         const currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const initialLang = tgUser?.language_code === 'ru' ? 'ru' : 'en';
 
         console.log('Fetching user:', telegramId);
         const users = await directus.request(readItems('users', {
@@ -134,7 +137,8 @@ function App() {
             reminder_time: '20:00',
             timezone: currentTimezone,
             premium: false,
-            donate: 0
+            donate: 0,
+            language: initialLang
           };
           directusUser = await directus.request(createItem('users', newUser)) as User;
         } else {
@@ -145,6 +149,17 @@ function App() {
             })) as User;
           }
         }
+        
+        if (directusUser.language) {
+          i18n.changeLanguage(directusUser.language);
+        } else {
+          // If user exists but has no language field set yet
+          await directus.request(updateItem('users', directusUser.id as any, {
+            language: initialLang
+          }));
+          i18n.changeLanguage(initialLang);
+        }
+        
         setUser(directusUser);
       } catch (error: any) {
         console.error('Error loading user:', error);
@@ -380,7 +395,7 @@ function App() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center h-screen">{t('common.loading')}</div>;
   }
 
   const focusHabit = habits.find(h => h.is_focus);
@@ -531,6 +546,19 @@ function App() {
     }
   };
 
+  const changeLanguage = async (lang: string) => {
+    if (!user) return;
+    try {
+      await directus.request(updateItem('users', user.id as any, { language: lang }));
+      i18n.changeLanguage(lang);
+      setUser(prev => prev ? { ...prev, language: lang } : null);
+      WebApp.HapticFeedback.impactOccurred('medium');
+    } catch (error) {
+      console.error('Error changing language:', error);
+      WebApp.showAlert('Failed to update language');
+    }
+  };
+
   const moveHabit = async (habitId: string | number, direction: 'up' | 'down') => {
     const index = habits.findIndex(h => h.id === habitId);
     if (index === -1) return;
@@ -611,7 +639,7 @@ function App() {
     return (
       <div className="space-y-6">
         <header className="flex justify-between items-center">
-          <h2 className="text-xl font-bold">Progress</h2>
+          <h2 className="text-xl font-bold">{t('progress.title')}</h2>
           <select 
             value={selectedHabitId ?? ''} 
             onChange={(e) => setSelectedHabitId(e.target.value)}
@@ -645,11 +673,11 @@ function App() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-            <p className="text-xs text-slate-400 uppercase font-bold mb-1">Habit XP (Month)</p>
+            <p className="text-xs text-slate-400 uppercase font-bold mb-1">{t('progress.habitXpMonth')}</p>
             <p className="text-2xl font-bold text-indigo-600">{habitLogs.filter(l => l.status === 'done').length * 10}</p>
           </div>
           <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-            <p className="text-xs text-slate-400 uppercase font-bold mb-1">Days Done</p>
+            <p className="text-xs text-slate-400 uppercase font-bold mb-1">{t('progress.daysDone')}</p>
             <p className="text-2xl font-bold text-green-600">{habitLogs.filter(l => l.status === 'done').length}</p>
           </div>
         </div>
@@ -663,13 +691,13 @@ function App() {
               <span className={`text-xs font-bold px-2 py-1 rounded-full ${
                 selectedDayLog?.status === 'done' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
               }`}>
-                {selectedDayLog?.status === 'done' ? 'Completed' : 'Missed'}
+                {selectedDayLog?.status === 'done' ? t('common.complete') : t('common.missed')}
               </span>
             </div>
             {selectedDayLog?.note ? (
               <p className="text-slate-600 text-sm italic">"{selectedDayLog.note}"</p>
             ) : (
-              <p className="text-slate-400 text-sm">No notes for this day.</p>
+              <p className="text-slate-400 text-sm">{t('progress.noNotes')}</p>
             )}
           </div>
         )}
@@ -685,15 +713,15 @@ function App() {
     if (activeTab === 'settings') {
       return (
         <div className="space-y-6">
-          <h2 className="text-xl font-bold">Settings</h2>
+          <h2 className="text-xl font-bold">{t('settings.title')}</h2>
           
           <section>
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Global Reminder</h3>
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.globalReminder')}</h3>
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-slate-700">
                   {user?.reminder_enabled ? <Bell className="w-5 h-5 text-indigo-500" /> : <BellOff className="w-5 h-5 text-slate-300" />}
-                  <span className="font-semibold">Daily Reminder</span>
+                  <span className="font-semibold">{t('settings.dailyReminder')}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   {user?.reminder_enabled && (
@@ -720,18 +748,38 @@ function App() {
                       : 'bg-indigo-600 text-white shadow-md shadow-indigo-100'
                     }`}
                   >
-                    {user?.reminder_enabled ? 'Disable' : 'Enable'}
+                    {user?.reminder_enabled ? t('common.cancel') : t('common.done')}
                   </button>
                 </div>
               </div>
               <p className="text-xs text-slate-400 mt-3">
-                Receive a notification via our Telegram bot to keep your streaks alive.
+                {t('settings.reminderDesc')}
               </p>
             </div>
           </section>
 
           <section>
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Manage Habits</h3>
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.language')}</h3>
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Languages className="w-5 h-5 text-indigo-500" />
+                  <span className="font-semibold">{t('settings.language')}</span>
+                </div>
+                <select 
+                  value={i18n.language}
+                  onChange={(e) => changeLanguage(e.target.value)}
+                  className="text-sm border border-slate-200 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                >
+                  <option value="en">English</option>
+                  <option value="ru">Русский</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.manageHabits')}</h3>
             <div className="space-y-3">
               {habits.map((habit) => (
                 <div key={habit.id} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
@@ -802,31 +850,31 @@ function App() {
           </section>
 
           <section>
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Spread the Word</h3>
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.spreadWord')}</h3>
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 text-center">
               <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Share2 className="w-6 h-6 text-indigo-500" />
               </div>
-              <h4 className="font-bold text-slate-800 mb-1">Invite Friends</h4>
-              <p className="text-xs text-slate-400 mb-4">Help others build better habits too!</p>
+              <h4 className="font-bold text-slate-800 mb-1">{t('settings.inviteFriends')}</h4>
+              <p className="text-xs text-slate-400 mb-4">{t('settings.inviteDesc')}</p>
               <button
                 onClick={handleShare}
                 className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md shadow-indigo-100"
               >
                 <Share2 className="w-4 h-4" />
-                Share Bot
+                {t('settings.shareBot')}
               </button>
             </div>
           </section>
 
           <section>
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Support Project</h3>
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.supportProject')}</h3>
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 text-center">
               <div className="w-12 h-12 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Heart className="w-6 h-6 text-pink-500 fill-pink-500" />
               </div>
-              <h4 className="font-bold text-slate-800 mb-1">Like the app?</h4>
-              <p className="text-xs text-slate-400 mb-4">Support development with Telegram Stars</p>
+              <h4 className="font-bold text-slate-800 mb-1">{t('settings.likeApp')}</h4>
+              <p className="text-xs text-slate-400 mb-4">{t('settings.supportDesc')}</p>
               <div className="grid grid-cols-4 gap-2">
                 {[5, 50, 500, 1000].map((amount) => (
                   <button
@@ -842,14 +890,14 @@ function App() {
           </section>
 
           <section>
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Account</h3>
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.account')}</h3>
             <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
               <div className="flex items-center justify-between py-2">
-                <span>Username</span>
+                <span>{t('settings.username')}</span>
                 <span className="text-slate-400">{user?.username}</span>
               </div>
               <div className="flex items-center justify-between py-2 border-t border-slate-50">
-                <span>Telegram ID</span>
+                <span>{t('settings.telegramId')}</span>
                 <span className="text-slate-400">{user?.telegram_id}</span>
               </div>
             </div>
@@ -859,7 +907,7 @@ function App() {
             onClick={() => WebApp.showAlert('Habit Tracker v1.0.0')}
             className="w-full py-4 bg-white text-slate-600 rounded-xl font-medium border border-slate-100 shadow-sm"
           >
-            App Version
+            {t('settings.appVersion')}
           </button>
         </div>
       );
@@ -892,7 +940,7 @@ function App() {
 
     const isToday = selectedDate === today;
     const isSevenDaysAgo = selectedDate <= sevenDaysAgoStr;
-    const displayDate = isToday ? 'Today' : new Date(selectedDate).toLocaleDateString('default', { month: 'short', day: 'numeric' });
+    const displayDate = isToday ? t('common.today') : new Date(selectedDate).toLocaleDateString('default', { month: 'short', day: 'numeric' });
 
     const currentXP = user?.total_xp || 0;
     const currentLevel = getLevel(currentXP);
@@ -921,7 +969,7 @@ function App() {
                 )}
               </div>
             </div>
-            <p className="text-slate-500 text-sm">{isToday ? 'Keep the momentum going' : 'Log missed habits'}</p>
+            <p className="text-slate-500 text-sm">{isToday ? t('today.momentum') : t('today.logMissed')}</p>
           </div>
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
@@ -950,12 +998,12 @@ function App() {
           <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden">
             <Star className="absolute -right-4 -top-4 w-24 h-24 text-indigo-500 opacity-50" />
             <div className="relative z-10">
-              <span className="text-indigo-200 text-xs font-bold uppercase tracking-wider">Focus Habit</span>
+              <span className="text-indigo-200 text-xs font-bold uppercase tracking-wider">{t('today.focusHabit')}</span>
               <h2 className="text-2xl font-bold mt-1 mb-4">{focusHabit.name}</h2>
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
-                  <span className="text-indigo-100 text-sm">Current Streak</span>
-                  <span className="text-2xl font-bold">{focusHabit.streak} days</span>
+                  <span className="text-indigo-100 text-sm">{t('today.currentStreak')}</span>
+                  <span className="text-2xl font-bold">{focusHabit.streak} {t('today.days')}</span>
                 </div>
                 <div className="flex flex-col gap-2">
                   <button 
@@ -967,7 +1015,7 @@ function App() {
                     }`}
                   >
                     <CheckCircle2 className="w-6 h-6" />
-                    {completedToday.includes(focusHabit.id) ? 'Done' : 'Complete'}
+                    {completedToday.includes(focusHabit.id) ? t('common.done') : t('common.complete')}
                   </button>
                   {!completedToday.includes(focusHabit.id) && (
                     <button 
@@ -975,7 +1023,7 @@ function App() {
                       className="text-indigo-200 text-xs font-bold flex items-center justify-center gap-1 hover:text-white transition-colors"
                     >
                       <MessageSquare className="w-3 h-3" />
-                      Add Note
+                      {t('notes.save')}
                     </button>
                   )}
                 </div>
@@ -986,7 +1034,7 @@ function App() {
       )}
 
       <section className="mb-8">
-        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Other Habits</h3>
+        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">{t('today.otherHabits')}</h3>
         <div className="space-y-3">
           {otherHabits.map(habit => (
             <div key={habit.id} className="space-y-2">
@@ -1006,7 +1054,7 @@ function App() {
                     <h4 className="font-semibold">
                       {habit.name}
                     </h4>
-                    <p className="text-xs text-slate-400">{habit.streak} day streak</p>
+                    <p className="text-xs text-slate-400">{habit.streak} {t('today.days')}</p>
                   </div>
                 </div>
                 {!completedToday.includes(habit.id) && (
@@ -1025,7 +1073,7 @@ function App() {
             className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-medium flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors"
           >
             <Plus className="w-5 h-5" />
-            Add Habit
+            {t('today.addHabit')}
           </button>
         </div>
       </section>
@@ -1034,14 +1082,14 @@ function App() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-slate-800">Why was it missed?</h3>
+              <h3 className="text-lg font-bold text-slate-800">{t('notes.title')}</h3>
               <button onClick={() => setIsAddingNote(null)} className="p-1 bg-slate-100 rounded-full">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <textarea
               autoFocus
-              placeholder="Enter a reason..."
+              placeholder={t('notes.placeholder')}
               className="w-full p-3 bg-slate-50 rounded-xl border-2 border-slate-100 focus:border-indigo-600 outline-none mb-4 min-h-[100px] text-sm"
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
@@ -1051,7 +1099,7 @@ function App() {
               className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
               <Save className="w-4 h-4" />
-              Save Note
+              {t('notes.save')}
             </button>
           </div>
         </div>
@@ -1061,7 +1109,7 @@ function App() {
         <div className="fixed inset-0 bg-black/50 flex items-end z-50">
           <div className="bg-white w-full rounded-t-3xl p-6 animate-in slide-in-from-bottom">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold">New Habit</h3>
+              <h3 className="text-xl font-bold">{t('habits.newHabit')}</h3>
               <button onClick={() => setIsAddingHabit(false)} className="p-2 bg-slate-100 rounded-full">
                 <X className="w-5 h-5" />
               </button>
@@ -1069,7 +1117,7 @@ function App() {
             <input
               autoFocus
               type="text"
-              placeholder="What habit do you want to build?"
+              placeholder={t('habits.placeholder')}
               className="w-full p-4 bg-slate-50 rounded-xl border-2 border-slate-100 focus:border-indigo-600 outline-none mb-6"
               value={newHabitName}
               onChange={(e) => setNewHabitName(e.target.value)}
@@ -1079,7 +1127,7 @@ function App() {
               onClick={addHabit}
               className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
             >
-              Create Habit
+              {t('habits.create')}
             </button>
           </div>
         </div>
@@ -1121,17 +1169,17 @@ function App() {
               <Trophy className="w-24 h-24 text-yellow-400 mx-auto animate-bounce" />
               <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-white animate-pulse" />
             </div>
-            <h2 className="text-4xl font-black mb-2 tracking-tight">LEVEL UP!</h2>
-            <p className="text-indigo-100 text-lg mb-8 font-medium">You've reached Level {showLevelUp}</p>
+            <h2 className="text-4xl font-black mb-2 tracking-tight">{t('levelUp.title')}</h2>
+            <p className="text-indigo-100 text-lg mb-8 font-medium">{t('levelUp.reached', { level: showLevelUp })}</p>
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-white/20">
-              <p className="text-sm font-bold uppercase tracking-widest text-indigo-200 mb-1">New Milestone</p>
-              <p className="text-xl font-bold">Keep crushing your goals!</p>
+              <p className="text-sm font-bold uppercase tracking-widest text-indigo-200 mb-1">{t('levelUp.milestone')}</p>
+              <p className="text-xl font-bold">{t('levelUp.keepCrushing')}</p>
             </div>
             <button 
               onClick={() => setShowLevelUp(null)}
               className="px-8 py-4 bg-white text-indigo-600 rounded-2xl font-black shadow-xl active:scale-95 transition-all uppercase tracking-wider"
             >
-              Continue Journey
+              {t('levelUp.continue')}
             </button>
           </div>
         </div>
