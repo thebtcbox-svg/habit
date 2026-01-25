@@ -10,6 +10,7 @@ This project supports multi-language functionality for both the Telegram Mini Ap
 - Indonesian (`id`)
 - Farsi (`fa`)
 - Ukrainian (`uk`)
+- German (`de`)
 
 ## Localized Files
 
@@ -25,6 +26,7 @@ The frontend uses `i18next` and `react-i18next` for localization.
   - `id.json`: Indonesian
   - `fa.json`: Farsi
   - `uk.json`: Ukrainian
+  - `de.json`: German
 - **Implementation**: `src/App.tsx` (using `useTranslation` hook)
 
 ### 2. Backend (Telegram Bot)

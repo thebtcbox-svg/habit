@@ -1,0 +1,71 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "confirm": "Bist du sicher?",
+    "done": "Erledigt",
+    "complete": "Abgeschlossen",
+    "missed": "Verpasst",
+    "today": "Heute"
+  },
+  "tabs": {
+    "today": "Heute",
+    "progress": "Fortschritt",
+    "settings": "Einstellungen"
+  },
+  "today": {
+    "momentum": "Bleib am Ball",
+    "logMissed": "Verpasste Gewohnheiten loggen",
+    "focusHabit": "Fokus-Gewohnheit",
+    "currentStreak": "Aktuelle Serie",
+    "otherHabits": "Andere Gewohnheiten",
+    "addHabit": "Gewohnheit hinzufügen",
+    "days": "Tage"
+  },
+  "progress": {
+    "title": "Fortschritt",
+    "habitXpMonth": "Gewohnheits-XP (Monat)",
+    "daysDone": "Tage erledigt",
+    "noNotes": "Keine Notizen für diesen Tag."
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "globalReminder": "Globale Erinnerung",
+    "dailyReminder": "Tägliche Erinnerung",
+    "reminderDesc": "Erhalte eine Benachrichtigung über unseren Telegram-Bot, um deine Serien am Leben zu erhalten.",
+    "manageHabits": "Gewohnheiten verwalten",
+    "spreadWord": "Weitersagen",
+    "inviteFriends": "Freunde einladen",
+    "inviteDesc": "Hilf anderen, auch bessere Gewohnheiten aufzubauen!",
+    "shareBot": "Bot teilen",
+    "supportProject": "Projekt unterstützen",
+    "likeApp": "Gefällt dir die App?",
+    "supportDesc": "Unterstütze die Entwicklung mit Telegram Stars",
+    "account": "Konto",
+    "username": "Benutzername",
+    "telegramId": "Telegram-ID",
+    "appVersion": "App-Version",
+    "language": "Sprache"
+  },
+  "habits": {
+    "newHabit": "Neue Gewohnheit",
+    "placeholder": "Welche Gewohnheit möchtest du aufbauen?",
+    "create": "Gewohnheit erstellen",
+    "deleteConfirm": "Bist du sicher, dass du diese Gewohnheit löschen möchtest? Alle mit dieser Gewohnheit verdienten XP werden entfernt.",
+    "rename": "Gewohnheit umbenennen"
+  },
+  "notes": {
+    "title": "Warum wurde es verpasst?",
+    "placeholder": "Grund eingeben...",
+    "save": "Notiz speichern"
+  },
+  "levelUp": {
+    "title": "LEVEL UP!",
+    "reached": "Du hast Level {{level}} erreicht",
+    "milestone": "Neuer Meilenstein",
+    "keepCrushing": "Mach weiter so!",
+    "continue": "Reise fortsetzen"
+  }
+}

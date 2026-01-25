@@ -62,6 +62,13 @@ const BOT_TRANSLATIONS = {
     support_thanks: `Дякуємо за вашу підтримку у {{amount}} зірок! 🌟 Ви отримали бонус {{xp}} XP! Продовжуйте в тому ж дусі!`,
     invoice_title: "Підтримати Habit Tracker",
     invoice_desc: "Підтримайте розробку за допомогою {{amount}} зірок Telegram 🌟"
+  },
+  de: {
+    welcome: `Willkommen! 🌟\n\nErfolg wird Gewohnheit für Gewohnheit aufgebaut. Wir glauben, dass die Konzentration auf <b>eine Hauptgewohnheit</b>, während du deine unterstützenden verfolgst, das Geheimnis für langfristiges Wachstum ist.\n\nTipper auf den <b>blauen Button</b> 📱 unten links, um deinen Tracker zu öffnen und deine Zukunft zu gestalten!\n\n📌 <b>Tipp:</b> Pinne diesen Bot in deine Chat-Liste, um konsistent zu bleiben und deine Ziele nie aus den Augen zu verlieren.`,
+    reminder: `Hey {{username}}! 🌟 Vergiss nicht, heute deine Gewohnheiten zu loggen und deine Serie am Leben zu erhalten!`,
+    support_thanks: `Vielen Dank für deine Unterstützung mit {{amount}} Sternen! 🌟 Du wurdest mit einem {{xp}} XP-Bonus belohnt! Mach weiter so mit deinen Gewohnheiten!`,
+    invoice_title: "Habit Tracker unterstützen",
+    invoice_desc: "Unterstütze die Entwicklung mit {{amount}} Telegram-Sternen 🌟"
   }
 };
 

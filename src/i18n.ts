@@ -8,6 +8,7 @@ import es from './locales/es.json';
 import id from './locales/id.json';
 import fa from './locales/fa.json';
 import uk from './locales/uk.json';
+import de from './locales/de.json';
 
 i18n
   .use(LanguageDetector)
@@ -20,7 +21,8 @@ i18n
       es: { translation: es },
       id: { translation: id },
       fa: { translation: fa },
-      uk: { translation: uk }
+      uk: { translation: uk },
+      de: { translation: de }
     },
     fallbackLng: 'en',
     interpolation: {

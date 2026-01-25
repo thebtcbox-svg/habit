@@ -782,6 +782,7 @@ function App() {
                   <option value="id">Bahasa Indonesia</option>
                   <option value="fa">فارسی</option>
                   <option value="uk">Українська</option>
+                  <option value="de">Deutsch</option>
                 </select>
               </div>
             </div>
