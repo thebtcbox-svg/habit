@@ -1007,7 +1007,7 @@ function App() {
         <section className="mb-8">
           <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden">
             {user?.premium && (
-              <div className="absolute top-0 left-0 bg-yellow-400 text-indigo-900 text-[10px] font-black px-2 py-1 rounded-br-xl uppercase tracking-widest z-20 shadow-sm">
+              <div className="absolute top-0 right-0 bg-yellow-400 text-indigo-900 text-[10px] font-black px-2 py-1 rounded-bl-xl uppercase tracking-widest z-20 shadow-sm">
                 Premium
               </div>
             )}
