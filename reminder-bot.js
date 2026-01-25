@@ -3,6 +3,7 @@ import axios from 'axios';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -162,6 +163,19 @@ async function handleUpdates() {
             text: welcomeMessage,
             parse_mode: 'HTML'
           });
+
+          // Send start.JPG photo after the welcome message
+          const photoPath = path.join(__dirname, 'start.JPG');
+          try {
+            const photoBuffer = await fs.readFile(photoPath);
+            const formData = new FormData();
+            formData.append('chat_id', update.message.chat.id);
+            formData.append('photo', new Blob([photoBuffer]), 'start.JPG');
+
+            await axios.post(`https://api.telegram.org/bot${telegramToken}/sendPhoto`, formData);
+          } catch (photoError) {
+            console.error('Error sending start photo:', photoError.message);
+          }
         } catch (error) {
           console.error('Error sending welcome message:', error.response?.data || error.message);
         }
