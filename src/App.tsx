@@ -491,7 +491,7 @@ function App() {
   };
 
   const handleShare = () => {
-    const shareText = "Check out this Telegram Habit Tracker! 📈 Simple, effective, and works right inside Telegram.";
+    const shareText = t('settings.shareText');
     const botUrl = "https://t.me/habitappw_bot";
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(shareText)}`;
     
