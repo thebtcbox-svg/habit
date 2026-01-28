@@ -1040,6 +1040,53 @@ function App() {
               ))}
             </div>
           </section>
+          <section>
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.spreadWord')}</h3>
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 text-center">
+              <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Heart className="w-6 h-6 text-indigo-500 fill-indigo-500" />
+              </div>
+              <h4 className="font-bold text-slate-800 mb-1">{t('settings.inviteFriends')}</h4>
+              <p className="text-xs text-slate-400 mb-4">{t('settings.inviteDesc')}</p>
+              <button onClick={() => handleShare()} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md shadow-indigo-100">
+                <Share2 className="w-4 h-4" />{t('settings.shareBot')}
+              </button>
+            </div>
+          </section>
+          <section>
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.supportProject')}</h3>
+            <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+              <Sparkles className="absolute -right-2 -top-2 w-16 h-16 text-white/20 rotate-12" />
+              <h4 className="font-bold mb-1 flex items-center gap-2">
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />{t('settings.likeApp')}
+              </h4>
+              <p className="text-xs text-indigo-100 mb-4">{t('settings.supportDesc')}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[50, 100, 250].map(amount => (
+                  <button key={amount} onClick={() => handleSupport(amount)} className="py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-bold transition-colors">
+                    {amount} ⭐️
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+          <section className="pb-8">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.account')}</h3>
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm divide-y divide-slate-50">
+              <div className="p-4 flex justify-between items-center">
+                <span className="text-sm text-slate-600">{t('settings.username')}</span>
+                <span className="text-sm font-bold text-slate-800">@{user?.username}</span>
+              </div>
+              <div className="p-4 flex justify-between items-center">
+                <span className="text-sm text-slate-600">{t('settings.telegramId')}</span>
+                <span className="text-sm font-mono text-slate-500">{user?.telegram_id}</span>
+              </div>
+              <div className="p-4 flex justify-between items-center">
+                <span className="text-sm text-slate-600">{t('settings.appVersion')}</span>
+                <span className="text-sm text-slate-400">1.2.5-stable</span>
+              </div>
+            </div>
+          </section>
         </div>
       );
     }
