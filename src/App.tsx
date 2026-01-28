@@ -578,12 +578,13 @@ function App() {
     try {
       const opps = await directus.request(readItems('users', {
         filter: {
-          username: { _eq: username }
+          username: { _icontains: username }
         }
       }));
 
-      if (opps.length > 0) {
-        const targetOpponent = opps[0];
+      const targetOpponent = opps.find(o => o.username.toLowerCase() === username.toLowerCase());
+
+      if (targetOpponent) {
         const newBattle = await directus.request(createItem('battles', {
           initiator_id: user.id,
           opponent_id: targetOpponent.id,
