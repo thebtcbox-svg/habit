@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
-import { directus, Habit, User, Log } from './lib/directus';
+import { directus, Habit, User, Log, Battle } from './lib/directus';
 import { readItems, createItem, updateItem, deleteItem, deleteItems } from '@directus/sdk';
-import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown, Sparkles, Heart, Share2, Languages } from 'lucide-react';
+import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown, Sparkles, Heart, Share2, Languages, Swords, ShieldAlert, User as UserIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import confetti from 'canvas-confetti';
 import axios from 'axios';
@@ -30,7 +30,7 @@ function App() {
   const [newHabitName, setNewHabitName] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [completedToday, setCompletedToday] = useState<(string | number)[]>([]);
-  const [activeTab, setActiveTab] = useState<'today' | 'calendar' | 'settings'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'calendar' | 'settings' | 'battle'>('today');
   const [selectedHabitId, setSelectedHabitId] = useState<string | number | null>(null);
   const [habitLogs, setHabitLogs] = useState<Log[]>([]);
   const [isAddingNote, setIsAddingNote] = useState<string | number | null>(null);
@@ -40,6 +40,13 @@ function App() {
   const [editingHabitName, setEditingHabitName] = useState('');
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [showLevelUp, setShowLevelUp] = useState<number | null>(null);
+
+  // Battle states
+  const [battle, setBattle] = useState<Battle | null>(null);
+  const [opponent, setOpponent] = useState<User | null>(null);
+  const [opponentTgId, setOpponentTgId] = useState('');
+  const [isSearchingOpponent, setIsSearchingOpponent] = useState(false);
+  const [opponentCompletedToday, setOpponentCompletedToday] = useState(false);
 
   const calculateStreak = (habitId: string | number, allLogs: Log[]) => {
     const habitLogs = allLogs
@@ -55,7 +62,6 @@ function App() {
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    // If the most recent log is not today or yesterday, the streak is broken
     if (uniqueDates[0] !== today && uniqueDates[0] !== yesterdayStr) {
       return 0;
     }
@@ -113,7 +119,6 @@ function App() {
     }
   }, [activeTab, selectedHabitId, calendarDate]);
 
-  // Initial load: User only
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -126,7 +131,6 @@ function App() {
         const currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const initialLang = tgUser?.language_code === 'ru' ? 'ru' : 'en';
 
-        console.log('Fetching user:', telegramId);
         const users = await directus.request(readItems('users', {
           filter: { telegram_id: { _eq: telegramId } }
         }));
@@ -157,7 +161,6 @@ function App() {
         if (directusUser.language) {
           i18n.changeLanguage(directusUser.language);
         } else {
-          // If user exists but has no language field set yet
           await directus.request(updateItem('users', directusUser.id as any, {
             language: initialLang
           }));
@@ -165,6 +168,33 @@ function App() {
         }
         
         setUser(directusUser);
+
+        // Battle check
+        const battles = await directus.request(readItems('battles', {
+          filter: {
+            _or: [
+              { initiator_id: { _eq: directusUser.id } },
+              { opponent_id: { _eq: directusUser.id } },
+              { opponent_tg_id: { _eq: telegramId } }
+            ],
+            status: { _in: ['pending', 'active'] }
+          } as any
+        }));
+
+        if (battles.length > 0) {
+          const b = battles[0] as Battle;
+          if (!b.opponent_id && b.opponent_tg_id === telegramId) {
+            await directus.request(updateItem('battles', b.id as any, { opponent_id: directusUser.id }));
+            b.opponent_id = directusUser.id;
+          }
+          setBattle(b);
+          
+          const oppId = b.initiator_id === directusUser.id ? b.opponent_id : b.initiator_id;
+          if (oppId) {
+            const opps = await directus.request(readItems('users', { filter: { id: { _eq: oppId } } }));
+            if (opps.length > 0) setOpponent(opps[0] as User);
+          }
+        }
       } catch (error: any) {
         console.error('Error loading user:', error);
         WebApp.showAlert(`Init Error: ${error.message}`);
@@ -174,7 +204,6 @@ function App() {
     loadUser();
   }, []);
 
-  // Fetch habits and logs when user or date changes
   useEffect(() => {
     if (!user) return;
 
@@ -201,6 +230,20 @@ function App() {
         setHabits(habitsWithStreaks as Habit[]);
         const userDateLogs = allLogs.filter(log => log.date === selectedDate);
         setCompletedToday(userDateLogs.map(log => log.habit_id));
+
+        if (battle && battle.status === 'active' && opponent) {
+          const oppHabitId = battle.initiator_id === opponent.id ? battle.initiator_habit_id : battle.opponent_habit_id;
+          if (oppHabitId) {
+            const oppLogs = await directus.request(readItems('logs', {
+              filter: {
+                habit_id: { _eq: oppHabitId },
+                date: { _eq: selectedDate },
+                status: { _eq: 'done' }
+              } as any
+            }));
+            setOpponentCompletedToday(oppLogs.length > 0);
+          }
+        }
       } catch (err) {
         console.error('Failed to fetch habits/logs:', err);
       } finally {
@@ -209,7 +252,7 @@ function App() {
     };
 
     fetchData();
-  }, [user?.id, selectedDate]);
+  }, [user?.id, selectedDate, battle?.id]);
 
   const toggleHabit = async (habitId: string | number) => {
     if (!user) return;
@@ -220,7 +263,6 @@ function App() {
 
     try {
       if (isCompleted) {
-        // UNDO HABIT
         const logs = await directus.request(readItems('logs', {
           filter: {
             _and: [
@@ -257,7 +299,6 @@ function App() {
         setCompletedToday(prev => prev.filter(id => id !== habitId));
         WebApp.HapticFeedback.notificationOccurred('warning');
       } else {
-        // COMPLETE HABIT
         const baseXP = habit.is_focus ? 25 : 10;
         
         const allLogsBefore = await directus.request(readItems('logs', {
@@ -326,7 +367,6 @@ function App() {
   const saveNote = async (habitId: string | number | null) => {
     if (!habitId || !user || !noteText.trim()) return;
     try {
-      // 1. Delete any existing log for this date/habit
       const existingLogs = await directus.request(readItems('logs', {
         filter: {
           _and: [
@@ -341,7 +381,6 @@ function App() {
         await directus.request(deleteItem('logs', log.id));
       }
 
-      // 2. Create new log with status 'not_done' and note
       await directus.request(createItem('logs', {
         habit_id: habitId as any,
         user_id: user.id as any,
@@ -355,7 +394,6 @@ function App() {
       setNoteText('');
       WebApp.HapticFeedback.notificationOccurred('success');
       
-      // Refresh logs if we are on calendar tab
       if (activeTab === 'calendar' && selectedHabitId) {
         const logs = await directus.request(readItems('logs', {
           filter: { habit_id: { _eq: selectedHabitId } },
@@ -392,37 +430,27 @@ function App() {
       }
     } catch (error: any) {
       console.error('Error adding habit:', error);
-      // Even if there's an error, let's log more info
       const msg = error.errors?.[0]?.message || error.message || 'Unknown error';
       WebApp.showAlert(`Failed to add habit: ${msg}`);
     }
   };
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">{t('common.loading')}</div>;
-  }
-
-  const focusHabit = habits.find(h => h.is_focus);
-  const otherHabits = habits.filter(h => !h.is_focus);
-
   const setFocusHabit = async (habitId: string | number) => {
     if (!user) return;
+    if (battle && battle.status === 'active') {
+      WebApp.showAlert(t('battle.noFocusHabit'));
+      return;
+    }
     try {
-      // 1. Unset current focus habit
       const currentFocus = habits.find(h => h.is_focus);
       if (currentFocus) {
         await directus.request(updateItem('habits', currentFocus.id as any, { is_focus: false }));
       }
-
-      // 2. Set new focus habit
       await directus.request(updateItem('habits', habitId as any, { is_focus: true }));
-
-      // Update local state
       setHabits(prev => prev.map(h => ({
         ...h,
         is_focus: h.id === habitId
       })));
-
       WebApp.HapticFeedback.impactOccurred('medium');
     } catch (error) {
       console.error('Error setting focus habit:', error);
@@ -436,7 +464,6 @@ function App() {
     WebApp.showConfirm('Are you sure you want to delete this habit? All XP earned from this habit will be removed.', async (confirmed) => {
       if (confirmed) {
         try {
-          // 1. Fetch all logs for this habit to calculate XP and delete them
           const logs = await directus.request(readItems('logs', {
             filter: { habit_id: { _eq: habitId } },
             limit: -1
@@ -444,22 +471,18 @@ function App() {
           
           const xpToSubtract = logs.reduce((acc, log) => acc + (log.xp_earned || 0), 0);
 
-          // 2. Delete logs first to avoid foreign key constraint issues
           if (logs.length > 0) {
             const logIds = logs.map(l => l.id) as any[];
             await directus.request(deleteItems('logs', logIds));
           }
 
-          // 3. Update User XP
           await directus.request(updateItem('users', user.id as any, {
             total_xp: Math.max(0, (user.total_xp || 0) - xpToSubtract)
           }));
 
-          // 4. Delete Habit
           // @ts-ignore
           await directus.request(deleteItem('habits', habitId));
           
-          // Update local state
           setHabits(prev => prev.filter(h => String(h.id) !== String(habitId)));
           setUser(prev => prev ? { ...prev, total_xp: Math.max(0, (prev.total_xp || 0) - xpToSubtract) } : null);
           
@@ -492,50 +515,105 @@ function App() {
     }
   };
 
-  const handleShare = () => {
-    const shareText = t('settings.shareText');
+  const handleShare = (customText?: string) => {
+    const shareText = typeof customText === 'string' ? customText : t('settings.shareText');
     const botUrl = "https://t.me/habitappw_bot";
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(shareText)}`;
     
-    // Using openTelegramLink with a share URL is more reliable than switchInlineQuery
-    // as it doesn't require inline mode to be enabled for the bot.
     WebApp.openTelegramLink(shareUrl);
     WebApp.HapticFeedback.impactOccurred('light');
   };
 
-  const handleSupport = async (starsAmount: number) => {
-    if (!user) return;
-    
+  const startBattle = async () => {
+    if (!user || !opponentTgId.trim()) return;
+    const focus = habits.find(h => h.is_focus);
+    if (!focus) {
+      WebApp.showAlert(t('battle.noFocusHabit'));
+      return;
+    }
+
+    setIsSearchingOpponent(true);
     try {
-      WebApp.MainButton.showProgress();
-      // In production, this URL should be your actual backend URL
-      const apiUrl = import.meta.env.PROD 
-        ? `${window.location.origin}/api/create-stars-invoice`
-        : `http://localhost:3001/api/create-stars-invoice`;
+      const opps = await directus.request(readItems('users', {
+        filter: {
+          _or: [
+            { telegram_id: { _eq: opponentTgId.trim() } },
+            { username: { _eq: opponentTgId.trim().replace('@', '') } }
+          ]
+        }
+      }));
 
-      const response = await axios.post(apiUrl, {
-        amount: starsAmount,
-        userId: user.id
-      });
-
-      if (response.data.url) {
-        WebApp.openInvoice(response.data.url, (status) => {
-          if (status === 'paid') {
-            WebApp.showAlert('Thank you for your support! 🌟');
-            confetti({
-              particleCount: 150,
-              spread: 70,
-              origin: { y: 0.6 },
-              colors: ['#fbbf24', '#f59e0b', '#fff']
-            });
-          }
+      if (opps.length > 0) {
+        const targetOpponent = opps[0];
+        const newBattle = await directus.request(createItem('battles', {
+          initiator_id: user.id,
+          opponent_id: targetOpponent.id,
+          opponent_tg_id: targetOpponent.telegram_id,
+          status: 'pending',
+          initiator_habit_id: focus.id,
+          initiator_habit_name: focus.name,
+          created_at: new Date().toISOString()
+        })) as Battle;
+        
+        setBattle(newBattle);
+        setOpponent(targetOpponent);
+        
+        // Send bot notification
+        const apiUrl = import.meta.env.PROD ? '/api/battle-notification' : 'http://localhost:3001/api/battle-notification';
+        await axios.post(apiUrl, {
+          targetTgId: targetOpponent.telegram_id,
+          initiatorName: user.username,
+          language: targetOpponent.language || 'en'
         });
+
+        WebApp.showAlert('Invitation sent!');
+      } else {
+        handleShare(t('battle.inviteText'));
       }
     } catch (error) {
-      console.error('Support error:', error);
-      WebApp.showAlert('Failed to initiate support process');
+      console.error('Error starting battle:', error);
+      WebApp.showAlert('Failed to initiate battle');
     } finally {
-      WebApp.MainButton.hideProgress();
+      setIsSearchingOpponent(false);
+    }
+  };
+
+  const respondToBattle = async (accept: boolean) => {
+    if (!battle || !user) return;
+    try {
+      if (accept) {
+        const focus = habits.find(h => h.is_focus);
+        if (!focus) {
+          WebApp.showAlert(t('battle.noFocusHabit'));
+          return;
+        }
+        const updated = await directus.request(updateItem('battles', battle.id as any, {
+          status: 'active',
+          opponent_habit_id: focus.id,
+          opponent_habit_name: focus.name,
+          started_at: new Date().toISOString()
+        })) as Battle;
+        setBattle(updated);
+      } else {
+        await directus.request(updateItem('battles', battle.id as any, { status: 'declined' }));
+        setBattle(null);
+        setOpponent(null);
+      }
+      WebApp.HapticFeedback.notificationOccurred('success');
+    } catch (error) {
+      console.error('Error responding to battle:', error);
+    }
+  };
+
+  const cancelBattle = async () => {
+    if (!battle) return;
+    try {
+      await directus.request(updateItem('battles', battle.id as any, { status: 'cancelled' }));
+      setBattle(null);
+      setOpponent(null);
+      WebApp.HapticFeedback.notificationOccurred('warning');
+    } catch (error) {
+      console.error('Error cancelling battle:', error);
     }
   };
 
@@ -573,26 +651,47 @@ function App() {
 
     const newHabits = [...habits];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    
-    // Swap in local state
     [newHabits[index], newHabits[targetIndex]] = [newHabits[targetIndex], newHabits[index]];
-    
-    // Update sort values based on new positions
     const updatedHabits = newHabits.map((h, i) => ({ ...h, sort: i + 1 }));
     setHabits(updatedHabits);
 
     try {
-      // Persist the new order to Directus
-      // We only need to update the two habits that swapped, or all of them to be safe
-      // Updating all ensures consistency
       await Promise.all(updatedHabits.map(h => 
         directus.request(updateItem('habits', h.id as any, { sort: h.sort }))
       ));
-      
       WebApp.HapticFeedback.impactOccurred('light');
     } catch (error) {
       console.error('Error moving habit:', error);
       WebApp.showAlert('Failed to save new order');
+    }
+  };
+
+  const handleSupport = async (starsAmount: number) => {
+    if (!user) return;
+    try {
+      WebApp.MainButton.showProgress();
+      const apiUrl = import.meta.env.PROD 
+        ? `${window.location.origin}/api/create-stars-invoice`
+        : `http://localhost:3001/api/create-stars-invoice`;
+
+      const response = await axios.post(apiUrl, {
+        amount: starsAmount,
+        userId: user.id
+      });
+
+      if (response.data.url) {
+        WebApp.openInvoice(response.data.url, (status) => {
+          if (status === 'paid') {
+            WebApp.showAlert('Thank you for your support! 🌟');
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#fbbf24', '#f59e0b', '#fff'] });
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Support error:', error);
+      WebApp.showAlert('Failed to initiate support process');
+    } finally {
+      WebApp.MainButton.hideProgress();
     }
   };
 
@@ -601,9 +700,8 @@ function App() {
     const month = calendarDate.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
     const days = [];
-    const startOffset = firstDay === 0 ? 6 : firstDay - 1; // Monday start
+    const startOffset = firstDay === 0 ? 6 : firstDay - 1;
 
     for (let i = 0; i < startOffset; i++) {
       days.push(<div key={`empty-${i}`} className="h-10" />);
@@ -634,13 +732,7 @@ function App() {
     }
 
     const monthName = calendarDate.toLocaleString('default', { month: 'long' });
-
     const selectedDayLog = habitLogs.find(l => l.date.startsWith(selectedCalendarDay || ''));
-
-    const changeMonth = (offset: number) => {
-      const newDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + offset, 1);
-      setCalendarDate(newDate);
-    };
 
     return (
       <div className="space-y-6">
@@ -656,27 +748,19 @@ function App() {
             ))}
           </select>
         </header>
-
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-slate-800">{monthName} {year}</h3>
             <div className="flex gap-2">
-              <button onClick={() => changeMonth(-1)} className="p-1 text-slate-400 hover:text-slate-600"><ChevronLeft className="w-5 h-5" /></button>
-              <button onClick={() => changeMonth(1)} className="p-1 text-slate-400 hover:text-slate-600"><ChevronRight className="w-5 h-5" /></button>
+              <button onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))} className="p-1 text-slate-400 hover:text-slate-600"><ChevronLeft className="w-5 h-5" /></button>
+              <button onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))} className="p-1 text-slate-400 hover:text-slate-600"><ChevronRight className="w-5 h-5" /></button>
             </div>
           </div>
-          
           <div className="grid grid-cols-7 gap-2 mb-2">
-            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(day => (
-              <div key={day} className="text-center text-xs font-bold text-slate-400">{day}</div>
-            ))}
+            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(day => (<div key={day} className="text-center text-xs font-bold text-slate-400">{day}</div>))}
           </div>
-          
-          <div className="grid grid-cols-7 gap-2">
-            {days}
-          </div>
+          <div className="grid grid-cols-7 gap-2">{days}</div>
         </div>
-
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
             <p className="text-xs text-slate-400 uppercase font-bold mb-1">{t('progress.habitXpMonth')}</p>
@@ -687,109 +771,125 @@ function App() {
             <p className="text-2xl font-bold text-green-600">{habitLogs.filter(l => l.status === 'done').length}</p>
           </div>
         </div>
-
         {selectedCalendarDay && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 animate-in fade-in slide-in-from-top-2">
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
             <div className="flex justify-between items-center mb-2">
-              <h4 className="font-bold text-slate-800">
-                {new Date(selectedCalendarDay).toLocaleDateString('default', { month: 'short', day: 'numeric' })}
-              </h4>
-              <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                selectedDayLog?.status === 'done' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-              }`}>
+              <h4 className="font-bold text-slate-800">{new Date(selectedCalendarDay).toLocaleDateString('default', { month: 'short', day: 'numeric' })}</h4>
+              <span className={`text-xs font-bold px-2 py-1 rounded-full ${selectedDayLog?.status === 'done' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                 {selectedDayLog?.status === 'done' ? t('common.complete') : t('common.missed')}
               </span>
             </div>
-            {selectedDayLog?.note ? (
-              <p className="text-slate-600 text-sm italic">"{selectedDayLog.note}"</p>
-            ) : (
-              <p className="text-slate-400 text-sm">{t('progress.noNotes')}</p>
-            )}
+            {selectedDayLog?.note ? <p className="text-slate-600 text-sm italic">"{selectedDayLog.note}"</p> : <p className="text-slate-400 text-sm">{t('progress.noNotes')}</p>}
           </div>
         )}
       </div>
     );
   };
 
-  const renderContent = () => {
-    if (activeTab === 'calendar') {
-      return renderCalendar();
+  const renderBattle = () => {
+    if (!battle) {
+      return (
+        <div className="space-y-6">
+          <header className="flex items-center gap-3"><Swords className="w-8 h-8 text-indigo-600" /><h2 className="text-2xl font-bold">{t('battle.title')}</h2></header>
+          <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><ShieldAlert className="w-5 h-5 text-indigo-500" />{t('battle.rules')}</h3>
+            <ul className="space-y-3 text-sm text-slate-600">
+              <li>1. {t('battle.rule1')}</li><li>2. {t('battle.rule2')}</li><li>3. {t('battle.rule3')}</li><li>4. {t('battle.rule4')}</li>
+            </ul>
+          </section>
+          <section className="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg">
+            <h3 className="text-lg font-bold mb-4">{t('battle.invite')}</h3>
+            <div className="space-y-4">
+              <input type="text" placeholder={t('battle.invitePlaceholder')} className="w-full bg-indigo-500/50 border border-indigo-400 rounded-xl px-4 py-3 text-white placeholder:text-indigo-200 outline-none" value={opponentTgId} onChange={(e) => setOpponentTgId(e.target.value)} />
+              <button onClick={startBattle} disabled={isSearchingOpponent} className="w-full bg-white text-indigo-600 py-3 rounded-xl font-bold active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                {isSearchingOpponent ? t('common.loading') : t('battle.start')}<Swords className="w-4 h-4" />
+              </button>
+            </div>
+          </section>
+        </div>
+      );
     }
+    if (battle.status === 'pending') {
+      const isInitiator = battle.initiator_id === user?.id;
+      return (
+        <div className="flex flex-col items-center justify-center h-[70vh] text-center space-y-6 animate-in fade-in zoom-in-95">
+          <div className="relative"><div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center animate-pulse"><Swords className="w-12 h-12 text-indigo-600" /></div><div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full border-2 border-white" /></div>
+          <div><h3 className="text-xl font-bold text-slate-800">{isInitiator ? t('battle.pending') : t('battle.inviteNotification', { username: opponent?.username || 'Somebody' })}</h3></div>
+          {!isInitiator ? (
+            <div className="flex gap-4 w-full px-6">
+              <button onClick={() => respondToBattle(false)} className="flex-1 py-4 bg-slate-200 text-slate-700 rounded-2xl font-bold active:scale-95 transition-all">{t('battle.decline')}</button>
+              <button onClick={() => respondToBattle(true)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-200">{t('battle.accept')}</button>
+            </div>
+          ) : (
+            <button onClick={cancelBattle} className="py-3 px-8 text-red-500 font-bold hover:bg-red-50 rounded-xl transition-colors">{t('battle.cancel')}</button>
+          )}
+        </div>
+      );
+    }
+    if (battle.status === 'active') {
+      const userHabitName = battle.initiator_id === user?.id ? battle.initiator_habit_name : battle.opponent_habit_name;
+      const oppHabitName = battle.initiator_id === user?.id ? battle.opponent_habit_name : battle.initiator_habit_name;
+      const userDone = completedToday.includes(battle.initiator_id === user?.id ? battle.initiator_habit_id : battle.opponent_habit_id!);
+      return (
+        <div className="space-y-6">
+          <header className="flex justify-between items-center"><div className="flex items-center gap-2"><Swords className="w-6 h-6 text-red-500" /><h2 className="text-xl font-black uppercase tracking-tight">{t('battle.active')}</h2></div><div className="bg-red-50 px-3 py-1 rounded-full border border-red-100"><span className="text-red-600 text-xs font-bold">LIVE</span></div></header>
+          <div className="grid grid-cols-2 gap-4">
+            <div className={`p-6 rounded-3xl border-2 ${userDone ? 'bg-green-50 border-green-200' : 'bg-white border-slate-100'}`}>
+              <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center mb-4"><UserIcon className="w-5 h-5 text-indigo-600" /></div>
+              <p className="text-xs font-bold text-slate-400 uppercase mb-1">{t('battle.you')}</p><h4 className="font-bold text-slate-800 mb-4 h-10 overflow-hidden line-clamp-2">{userHabitName}</h4>
+              <div className={`text-xs font-black px-2 py-1 rounded-lg inline-block ${userDone ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-400'}`}>{userDone ? t('common.done').toUpperCase() : t('common.missed').toUpperCase()}</div>
+            </div>
+            <div className={`p-6 rounded-3xl border-2 ${opponentCompletedToday ? 'bg-green-50 border-green-200' : 'bg-white border-slate-100'}`}>
+              <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center mb-4"><ShieldAlert className="w-5 h-5 text-red-600" /></div>
+              <p className="text-xs font-bold text-slate-400 uppercase mb-1">{t('battle.opponent')}</p><h4 className="font-bold text-slate-800 mb-4 h-10 overflow-hidden line-clamp-2">{oppHabitName}</h4>
+              <div className={`text-xs font-black px-2 py-1 rounded-lg inline-block ${opponentCompletedToday ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-400'}`}>{opponentCompletedToday ? t('common.done').toUpperCase() : t('common.missed').toUpperCase()}</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
+  const focusHabit = habits.find(h => h.is_focus);
+  const otherHabits = habits.filter(h => !h.is_focus);
+
+  const renderContent = () => {
+    if (activeTab === 'calendar') return renderCalendar();
     if (activeTab === 'settings') {
       return (
         <div className="space-y-6">
           <h2 className="text-xl font-bold">{t('settings.title')}</h2>
-          
           <section>
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.globalReminder')}</h3>
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-slate-700">
-                  {user?.reminder_enabled ? <Bell className="w-5 h-5 text-indigo-500" /> : <BellOff className="w-5 h-5 text-slate-300" />}
-                  <span className="font-semibold">{t('settings.dailyReminder')}</span>
-                </div>
+                <div className="flex items-center gap-2 text-slate-700">{user?.reminder_enabled ? <Bell className="w-5 h-5 text-indigo-500" /> : <BellOff className="w-5 h-5 text-slate-300" />}<span className="font-semibold">{t('settings.dailyReminder')}</span></div>
                 <div className="flex items-center gap-3">
                   {user?.reminder_enabled && (
-                    <select 
-                      value={user.reminder_time || '09:00'}
-                      onChange={(e) => updateGlobalReminder(true, e.target.value)}
-                      className="text-sm border border-slate-200 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                    >
-                      {Array.from({ length: 24 }).map((_, i) => {
-                        const hour = String(i).padStart(2, '0');
-                        return (
-                          <option key={hour} value={`${hour}:00`}>
-                            {hour}:00
-                          </option>
-                        );
-                      })}
+                    <select value={user.reminder_time || '09:00'} onChange={(e) => updateGlobalReminder(true, e.target.value)} className="text-sm border border-slate-200 rounded px-2 py-1 outline-none bg-white">
+                      {Array.from({ length: 24 }).map((_, i) => { const hour = String(i).padStart(2, '0'); return <option key={hour} value={`${hour}:00`}>{hour}:00</option>; })}
                     </select>
                   )}
-                  <button 
-                    onClick={() => updateGlobalReminder(!user?.reminder_enabled, user?.reminder_time || '09:00')}
-                    className={`text-xs font-bold px-4 py-2 rounded-full transition-all active:scale-95 ${
-                      user?.reminder_enabled 
-                      ? 'bg-red-50 text-red-600' 
-                      : 'bg-indigo-600 text-white shadow-md shadow-indigo-100'
-                    }`}
-                  >
+                  <button onClick={() => updateGlobalReminder(!user?.reminder_enabled, user?.reminder_time || '09:00')} className={`text-xs font-bold px-4 py-2 rounded-full transition-all active:scale-95 ${user?.reminder_enabled ? 'bg-red-50 text-red-600' : 'bg-indigo-600 text-white shadow-md shadow-indigo-100'}`}>
                     {user?.reminder_enabled ? t('common.cancel') : t('common.done')}
                   </button>
                 </div>
               </div>
-              <p className="text-xs text-slate-400 mt-3">
-                {t('settings.reminderDesc')}
-              </p>
+              <p className="text-xs text-slate-400 mt-3">{t('settings.reminderDesc')}</p>
             </div>
           </section>
-
           <section>
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.language')}</h3>
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Languages className="w-5 h-5 text-indigo-500" />
-                  <span className="font-semibold">{t('settings.language')}</span>
-                </div>
-                <select 
-                  value={i18n.language}
-                  onChange={(e) => changeLanguage(e.target.value)}
-                  className="text-sm border border-slate-200 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                >
-                  <option value="en">English</option>
-                  <option value="ru">Русский</option>
-                  <option value="ar">العربية</option>
-                  <option value="es">Español</option>
-                  <option value="id">Bahasa Indonesia</option>
-                  <option value="fa">فارسی</option>
-                  <option value="uk">Українська</option>
-                  <option value="de">Deutsch</option>
+                <div className="flex items-center gap-2 text-slate-700"><Languages className="w-5 h-5 text-indigo-500" /><span className="font-semibold">{t('settings.language')}</span></div>
+                <select value={i18n.language} onChange={(e) => changeLanguage(e.target.value)} className="text-sm border border-slate-200 rounded px-2 py-1 outline-none bg-white">
+                  <option value="en">English</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="es">Español</option><option value="id">Bahasa Indonesia</option><option value="fa">فارسی</option><option value="uk">Українська</option><option value="de">Deutsch</option>
                 </select>
               </div>
             </div>
           </section>
-
           <section>
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.manageHabits')}</h3>
             <div className="space-y-3">
@@ -797,407 +897,150 @@ function App() {
                 <div key={habit.id} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-1">
-                      <button 
-                        onClick={() => setFocusHabit(habit.id)}
-                        className={`p-1 rounded-md transition-colors ${habit.is_focus ? 'text-yellow-500' : 'text-slate-300 hover:text-yellow-500'}`}
-                      >
-                        <Star className={`w-5 h-5 ${habit.is_focus ? 'fill-yellow-500' : ''}`} />
-                      </button>
+                      <button onClick={() => setFocusHabit(habit.id)} className={`p-1 rounded-md transition-colors ${habit.is_focus ? 'text-yellow-500' : 'text-slate-300 hover:text-yellow-500'}`}><Star className={`w-5 h-5 ${habit.is_focus ? 'fill-yellow-500' : ''}`} /></button>
                       {editingHabitId === habit.id ? (
-                        <input 
-                          autoFocus
-                          type="text"
-                          value={editingHabitName}
-                          onChange={(e) => setEditingHabitName(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && renameHabit(habit.id)}
-                          className="flex-1 text-sm border-b-2 border-indigo-600 outline-none py-1"
-                        />
+                        <input autoFocus type="text" value={editingHabitName} onChange={(e) => setEditingHabitName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && renameHabit(habit.id)} className="flex-1 text-sm border-b-2 border-indigo-600 outline-none py-1" />
                       ) : (
-                        <span className={`font-bold ${habit.is_focus ? 'text-indigo-600' : 'text-slate-700'}`}>
-                          {habit.name}
-                        </span>
+                        <span className={`font-bold ${habit.is_focus ? 'text-indigo-600' : 'text-slate-700'}`}>{habit.name}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="flex flex-col">
-                        <button 
-                          onClick={() => moveHabit(habit.id, 'up')}
-                          className="p-1 text-slate-300 hover:text-indigo-600 transition-colors"
-                        >
-                          <ChevronUp className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => moveHabit(habit.id, 'down')}
-                          className="p-1 text-slate-300 hover:text-indigo-600 transition-colors"
-                        >
-                          <ChevronDown className="w-4 h-4" />
-                        </button>
+                        <button onClick={() => moveHabit(habit.id, 'up')} className="p-1 text-slate-300 hover:text-indigo-600 transition-colors"><ChevronUp className="w-4 h-4" /></button>
+                        <button onClick={() => moveHabit(habit.id, 'down')} className="p-1 text-slate-300 hover:text-indigo-600 transition-colors"><ChevronDown className="w-4 h-4" /></button>
                       </div>
                       {editingHabitId === habit.id ? (
-                        <button 
-                          onClick={() => renameHabit(habit.id)}
-                          className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
-                        >
-                          <Check className="w-5 h-5" />
-                        </button>
+                        <button onClick={() => renameHabit(habit.id)} className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-colors"><Check className="w-5 h-5" /></button>
                       ) : (
-                        <button 
-                          onClick={() => { setEditingHabitId(habit.id); setEditingHabitName(habit.name); }}
-                          className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
+                        <button onClick={() => { setEditingHabitId(habit.id); setEditingHabitName(habit.name); }} className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"><Pencil className="w-4 h-4" /></button>
                       )}
-                      <button 
-                        onClick={() => deleteHabit(habit.id)}
-                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <button onClick={() => deleteHabit(habit.id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 className="w-5 h-5" /></button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           </section>
-
-          <section>
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.spreadWord')}</h3>
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 text-center">
-              <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Share2 className="w-6 h-6 text-indigo-500" />
-              </div>
-              <h4 className="font-bold text-slate-800 mb-1">{t('settings.inviteFriends')}</h4>
-              <p className="text-xs text-slate-400 mb-4">{t('settings.inviteDesc')}</p>
-              <button
-                onClick={handleShare}
-                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md shadow-indigo-100"
-              >
-                <Share2 className="w-4 h-4" />
-                {t('settings.shareBot')}
-              </button>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.supportProject')}</h3>
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 text-center">
-              <div className="w-12 h-12 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Heart className="w-6 h-6 text-pink-500 fill-pink-500" />
-              </div>
-              <h4 className="font-bold text-slate-800 mb-1">{t('settings.likeApp')}</h4>
-              <p className="text-xs text-slate-400 mb-4">{t('settings.supportDesc')}</p>
-              <div className="grid grid-cols-4 gap-2">
-                {[5, 50, 500, 1000].map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => handleSupport(amount)}
-                    className="py-2 px-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-sm font-bold transition-colors border border-indigo-100"
-                  >
-                    ⭐ {amount}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">{t('settings.account')}</h3>
-            <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
-              <div className="flex items-center justify-between py-2">
-                <span>{t('settings.username')}</span>
-                <span className="text-slate-400">{user?.username}</span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-t border-slate-50">
-                <span>{t('settings.telegramId')}</span>
-                <span className="text-slate-400">{user?.telegram_id}</span>
-              </div>
-            </div>
-          </section>
-
-          <button 
-            onClick={() => WebApp.showAlert('Habit Tracker v1.0.0')}
-            className="w-full py-4 bg-white text-slate-600 rounded-xl font-medium border border-slate-100 shadow-sm"
-          >
-            {t('settings.appVersion')}
-          </button>
         </div>
       );
     }
+    if (activeTab === 'battle') return renderBattle();
 
-    const changeDate = (days: number) => {
-      const date = new Date(selectedDate);
-      date.setDate(date.getDate() + days);
-      const newDateStr = date.toISOString().split('T')[0];
-      
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Don't allow future dates
-      if (newDateStr > today) return;
-
-      // Limit to 7 days back
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
-      if (newDateStr < sevenDaysAgoStr) return;
-      
-      setSelectedDate(newDateStr);
-      WebApp.HapticFeedback.impactOccurred('light');
-    };
-
-    const today = new Date().toISOString().split('T')[0];
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
-
-    const isToday = selectedDate === today;
-    const isSevenDaysAgo = selectedDate <= sevenDaysAgoStr;
-    const displayDate = isToday ? t('common.today') : new Date(selectedDate).toLocaleDateString('default', { month: 'short', day: 'numeric' });
-
+    const isToday = selectedDate === new Date().toISOString().split('T')[0];
     const currentXP = user?.total_xp || 0;
     const currentLevel = getLevel(currentXP);
-    const xpForCurrentLevel = getXpForLevel(currentLevel);
-    const xpForNextLevel = getXpForLevel(currentLevel + 1);
-    const xpInLevel = currentXP - xpForCurrentLevel;
-    const xpNeededForLevel = xpForNextLevel - xpForCurrentLevel;
-    const progress = (xpInLevel / xpNeededForLevel) * 100;
+    const progress = ((currentXP - getXpForLevel(currentLevel)) / (getXpForLevel(currentLevel + 1) - getXpForLevel(currentLevel))) * 100;
 
     return (
       <>
         <header className="flex justify-between items-start mb-6">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">{displayDate}</h1>
+              <h1 className="text-2xl font-bold">{isToday ? t('common.today') : new Date(selectedDate).toLocaleDateString('default', { month: 'short', day: 'numeric' })}</h1>
               <div className="flex gap-1 ml-1">
-                {!isSevenDaysAgo && (
-                  <button onClick={() => changeDate(-1)} className="p-1 hover:bg-slate-100 rounded-md transition-colors">
-                    <ChevronLeft className="w-4 h-4 text-slate-400" />
-                  </button>
-                )}
-                {!isToday && (
-                  <button onClick={() => changeDate(1)} className="p-1 hover:bg-slate-100 rounded-md transition-colors">
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
-                  </button>
-                )}
+                <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() - 1); setSelectedDate(d.toISOString().split('T')[0]); WebApp.HapticFeedback.impactOccurred('light'); }} className="p-1 hover:bg-slate-100 rounded-md transition-colors"><ChevronLeft className="w-4 h-4 text-slate-400" /></button>
+                {!isToday && <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() + 1); setSelectedDate(d.toISOString().split('T')[0]); WebApp.HapticFeedback.impactOccurred('light'); }} className="p-1 hover:bg-slate-100 rounded-md transition-colors"><ChevronRight className="w-4 h-4 text-slate-400" /></button>}
               </div>
             </div>
             <p className="text-slate-500 text-sm">{isToday ? t('today.momentum') : t('today.logMissed')}</p>
           </div>
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
-              <Trophy className="w-4 h-4 text-yellow-500" />
-              <span className="font-bold text-slate-700 text-sm">Lvl {currentLevel}</span>
-              <span className="text-slate-300 mx-1">|</span>
-              <span className="font-semibold text-slate-600 text-sm">{currentXP} XP</span>
+              <Trophy className="w-4 h-4 text-yellow-500" /><span className="font-bold text-slate-700 text-sm">Lvl {currentLevel}</span>
+              <span className="text-slate-300 mx-1">|</span><span className="font-semibold text-slate-600 text-sm">{currentXP} XP</span>
             </div>
-            <div className="w-36">
-              <div className="h-2 bg-slate-200/50 rounded-full overflow-hidden p-[1px] border border-slate-100 shadow-inner">
-                <div 
-                  className="h-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 rounded-full transition-all duration-1000 ease-out shadow-sm"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <div className="flex justify-between items-center mt-1 px-1">
-                <span className="text-[10px] font-black text-indigo-500/80 uppercase tracking-widest">{Math.round(progress)}%</span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">{xpNeededForLevel - xpInLevel} XP LEFT</span>
-              </div>
-            </div>
+            <div className="w-36"><div className="h-2 bg-slate-200/50 rounded-full overflow-hidden p-[1px] border border-slate-100 shadow-inner"><div className="h-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 rounded-full transition-all duration-1000 ease-out shadow-sm" style={{ width: `${progress}%` }} /></div></div>
           </div>
         </header>
 
         {focusHabit && (
-        <section className="mb-8">
-          <div className={`${completedToday.includes(focusHabit.id) ? 'bg-indigo-600' : 'bg-indigo-400'} rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden transition-colors duration-300`}>
-            {user?.premium && (
-              <div className="absolute top-0 right-0 bg-yellow-400 text-indigo-900 text-[10px] font-black px-2 py-1 rounded-bl-xl uppercase tracking-widest z-20 shadow-sm">
-                Premium
-              </div>
-            )}
-            <Star className="absolute -right-4 -top-4 w-24 h-24 text-indigo-500 opacity-50" />
-            <div className="relative z-10">
-              <span className="text-indigo-200 text-xs font-bold uppercase tracking-wider">{t('today.focusHabit')}</span>
-              <h2 className="text-2xl font-bold mt-1 mb-4">{focusHabit.name}</h2>
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <span className="text-indigo-100 text-sm">{t('today.currentStreak')}</span>
-                  <span className="text-2xl font-bold">{focusHabit.streak} {t('today.days')}</span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <button 
-                    onClick={() => toggleHabit(focusHabit.id)}
-                    className={`p-3 rounded-xl font-bold flex items-center gap-2 active:scale-95 transition-all ${
-                      completedToday.includes(focusHabit.id) 
-                      ? 'bg-indigo-400 text-white' 
-                      : 'bg-white text-indigo-400'
-                    }`}
-                  >
-                    <CheckCircle2 className="w-6 h-6" />
-                    {completedToday.includes(focusHabit.id) ? t('common.done') : t('common.complete')}
-                  </button>
-                  {!completedToday.includes(focusHabit.id) && (
-                    <button 
-                      onClick={() => setIsAddingNote(focusHabit.id)}
-                      className="text-indigo-200 text-xs font-bold flex items-center justify-center gap-1 hover:text-white transition-colors"
-                    >
-                      <MessageSquare className="w-3 h-3" />
-                      {t('notes.save')}
+          <section className="mb-8">
+            <div className={`${completedToday.includes(focusHabit.id) ? 'bg-indigo-600' : 'bg-indigo-400'} rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden transition-colors duration-300`}>
+              <Star className="absolute -right-4 -top-4 w-24 h-24 text-indigo-500 opacity-50" />
+              <div className="relative z-10">
+                <span className="text-indigo-200 text-xs font-bold uppercase tracking-wider">{t('today.focusHabit')}</span>
+                <h2 className="text-2xl font-bold mt-1 mb-4">{focusHabit.name}</h2>
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col"><span className="text-indigo-100 text-sm">{t('today.currentStreak')}</span><span className="text-2xl font-bold">{focusHabit.streak} {t('today.days')}</span></div>
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => toggleHabit(focusHabit.id)} className={`p-3 rounded-xl font-bold flex items-center gap-2 active:scale-95 transition-all ${completedToday.includes(focusHabit.id) ? 'bg-indigo-400 text-white' : 'bg-white text-indigo-400'}`}>
+                      <CheckCircle2 className="w-6 h-6" />{completedToday.includes(focusHabit.id) ? t('common.done') : t('common.complete')}
                     </button>
-                  )}
+                    {!completedToday.includes(focusHabit.id) && <button onClick={() => setIsAddingNote(focusHabit.id)} className="text-indigo-200 text-xs font-bold flex items-center justify-center gap-1 hover:text-white transition-colors"><MessageSquare className="w-3 h-3" />{t('notes.save')}</button>}
+                  </div>
                 </div>
               </div>
             </div>
+          </section>
+        )}
+
+        <section className="mb-8">
+          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">{t('today.otherHabits')}</h3>
+          <div className="space-y-3">
+            {otherHabits.map(habit => (
+              <div key={habit.id} className="space-y-2">
+                <div onClick={() => toggleHabit(habit.id)} className={`${completedToday.includes(habit.id) ? 'bg-green-50 border-green-100' : 'bg-white border-slate-100'} p-4 rounded-xl flex items-center justify-between shadow-sm border active:scale-[0.98] transition-all cursor-pointer`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center">{completedToday.includes(habit.id) ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <Circle className="w-5 h-5 text-slate-300" />}</div>
+                    <div><h4 className="font-semibold">{habit.name}</h4><p className="text-xs text-slate-400">{habit.streak} {t('today.days')}</p></div>
+                  </div>
+                  {!completedToday.includes(habit.id) && <button onClick={(e) => { e.stopPropagation(); setIsAddingNote(habit.id); }} className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"><MessageSquare className="w-5 h-5" /></button>}
+                </div>
+              </div>
+            ))}
+            <button onClick={() => setIsAddingHabit(true)} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-medium flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors">
+              <Plus className="w-5 h-5" />{t('today.addHabit')}
+            </button>
           </div>
         </section>
-      )}
 
-      <section className="mb-8">
-        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">{t('today.otherHabits')}</h3>
-        <div className="space-y-3">
-          {otherHabits.map(habit => (
-            <div key={habit.id} className="space-y-2">
-              <div 
-                onClick={() => toggleHabit(habit.id)}
-                className={`${completedToday.includes(habit.id) ? 'bg-green-50 border-green-100' : 'bg-white border-slate-100'} p-4 rounded-xl flex items-center justify-between shadow-sm border active:scale-[0.98] transition-all cursor-pointer`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center">
-                    {completedToday.includes(habit.id) ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    ) : (
-                      <Circle className="w-5 h-5 text-slate-300" />
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">
-                      {habit.name}
-                    </h4>
-                    <p className="text-xs text-slate-400">{habit.streak} {t('today.days')}</p>
-                  </div>
-                </div>
-                {!completedToday.includes(habit.id) && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setIsAddingNote(habit.id); }}
-                    className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"
-                  >
-                    <MessageSquare className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
+        {isAddingNote && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-in zoom-in-95">
+              <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-bold text-slate-800">{t('notes.title')}</h3><button onClick={() => setIsAddingNote(null)} className="p-1 bg-slate-100 rounded-full"><X className="w-4 h-4" /></button></div>
+              <textarea autoFocus placeholder={t('notes.placeholder')} className="w-full p-3 bg-slate-50 rounded-xl border-2 border-slate-100 focus:border-indigo-600 outline-none mb-4 min-h-[100px] text-sm" value={noteText} onChange={(e) => setNoteText(e.target.value)} />
+              <button onClick={() => isAddingNote && saveNote(isAddingNote)} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"><Save className="w-4 h-4" />{t('notes.save')}</button>
             </div>
-          ))}
-          <button 
-            onClick={() => setIsAddingHabit(true)}
-            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-medium flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            {t('today.addHabit')}
-          </button>
-        </div>
-      </section>
-
-      {isAddingNote && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl p-6 animate-in zoom-in-95">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-slate-800">{t('notes.title')}</h3>
-              <button onClick={() => setIsAddingNote(null)} className="p-1 bg-slate-100 rounded-full">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <textarea
-              autoFocus
-              placeholder={t('notes.placeholder')}
-              className="w-full p-3 bg-slate-50 rounded-xl border-2 border-slate-100 focus:border-indigo-600 outline-none mb-4 min-h-[100px] text-sm"
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-            />
-            <button 
-              onClick={() => isAddingNote && saveNote(isAddingNote)}
-              className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
-            >
-              <Save className="w-4 h-4" />
-              {t('notes.save')}
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {isAddingHabit && (
-        <div className="fixed inset-0 bg-black/50 flex items-end z-50">
-          <div className="bg-white w-full rounded-t-3xl p-6 animate-in slide-in-from-bottom">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold">{t('habits.newHabit')}</h3>
-              <button onClick={() => setIsAddingHabit(false)} className="p-2 bg-slate-100 rounded-full">
-                <X className="w-5 h-5" />
-              </button>
+        {isAddingHabit && (
+          <div className="fixed inset-0 bg-black/50 flex items-end z-50">
+            <div className="bg-white w-full rounded-t-3xl p-6 animate-in slide-in-from-bottom">
+              <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold">{t('habits.newHabit')}</h3><button onClick={() => setIsAddingHabit(false)} className="p-2 bg-slate-100 rounded-full"><X className="w-5 h-5" /></button></div>
+              <input autoFocus type="text" placeholder={t('habits.placeholder')} className="w-full p-4 bg-slate-50 rounded-xl border-2 border-slate-100 focus:border-indigo-600 outline-none mb-6" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addHabit()} />
+              <button onClick={addHabit} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-transform">{t('habits.create')}</button>
             </div>
-            <input
-              autoFocus
-              type="text"
-              placeholder={t('habits.placeholder')}
-              className="w-full p-4 bg-slate-50 rounded-xl border-2 border-slate-100 focus:border-indigo-600 outline-none mb-6"
-              value={newHabitName}
-              onChange={(e) => setNewHabitName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addHabit()}
-            />
-            <button 
-              onClick={addHabit}
-              className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
-            >
-              {t('habits.create')}
-            </button>
           </div>
-        </div>
-      )}
-
+        )}
       </>
     );
   };
+
+  const hasBattleNotification = battle?.status === 'pending' && battle.opponent_id === user?.id;
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 pb-24 font-sans text-slate-900">
       {renderContent()}
 
       <nav className="fixed bottom-6 left-4 right-4 bg-white/80 backdrop-blur-md border border-slate-200 rounded-2xl p-2 flex justify-around shadow-lg z-40">
-        <button 
-          onClick={() => setActiveTab('today')}
-          className={`p-3 rounded-xl transition-colors ${activeTab === 'today' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
-        >
-          <CheckCircle2 className="w-6 h-6" />
+        <button onClick={() => setActiveTab('today')} className={`p-3 rounded-xl transition-colors ${activeTab === 'today' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}><CheckCircle2 className="w-6 h-6" /></button>
+        <button onClick={() => setActiveTab('calendar')} className={`p-3 rounded-xl transition-colors ${activeTab === 'calendar' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}><CalendarIcon className="w-6 h-6" /></button>
+        <button onClick={() => setActiveTab('battle')} className={`p-3 rounded-xl transition-colors relative ${activeTab === 'battle' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}>
+          <Swords className="w-6 h-6" />
+          {hasBattleNotification && <div className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-bounce" />}
         </button>
-        <button 
-          onClick={() => setActiveTab('calendar')}
-          className={`p-3 rounded-xl transition-colors ${activeTab === 'calendar' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
-        >
-          <CalendarIcon className="w-6 h-6" />
-        </button>
-        <button 
-          onClick={() => setActiveTab('settings')}
-          className={`p-3 rounded-xl transition-colors ${activeTab === 'settings' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}
-        >
-          <Settings className="w-6 h-6" />
-        </button>
+        <button onClick={() => setActiveTab('settings')} className={`p-3 rounded-xl transition-colors ${activeTab === 'settings' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}><Settings className="w-6 h-6" /></button>
       </nav>
 
       {showLevelUp && (
         <div className="fixed inset-0 bg-indigo-600/95 flex items-center justify-center z-[100] p-6 animate-in fade-in zoom-in duration-300">
           <div className="text-center text-white">
-            <div className="mb-6 relative inline-block">
-              <Trophy className="w-24 h-24 text-yellow-400 mx-auto animate-bounce" />
-              <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-white animate-pulse" />
-            </div>
+            <div className="mb-6 relative inline-block"><Trophy className="w-24 h-24 text-yellow-400 mx-auto animate-bounce" /><Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-white animate-pulse" /></div>
             <h2 className="text-4xl font-black mb-2 tracking-tight">{t('levelUp.title')}</h2>
             <p className="text-indigo-100 text-lg mb-8 font-medium">{t('levelUp.reached', { level: showLevelUp })}</p>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-white/20">
-              <p className="text-sm font-bold uppercase tracking-widest text-indigo-200 mb-1">{t('levelUp.milestone')}</p>
-              <p className="text-xl font-bold">{t('levelUp.keepCrushing')}</p>
-            </div>
-            <button 
-              onClick={() => setShowLevelUp(null)}
-              className="px-8 py-4 bg-white text-indigo-600 rounded-2xl font-black shadow-xl active:scale-95 transition-all uppercase tracking-wider"
-            >
-              {t('levelUp.continue')}
-            </button>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-white/20"><p className="text-sm font-bold uppercase tracking-widest text-indigo-200 mb-1">{t('levelUp.milestone')}</p><p className="text-xl font-bold">{t('levelUp.keepCrushing')}</p></div>
+            <button onClick={() => setShowLevelUp(null)} className="px-8 py-4 bg-white text-indigo-600 rounded-2xl font-black shadow-xl active:scale-95 transition-all uppercase tracking-wider">{t('levelUp.continue')}</button>
           </div>
         </div>
       )}

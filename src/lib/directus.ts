@@ -18,6 +18,7 @@ export interface Log {
   status: 'done' | 'not_done';
   note: string | null;
   xp_earned: number;
+  date_created: string;
 }
 
 export interface User {
@@ -34,10 +35,29 @@ export interface User {
   language: string;
 }
 
+export interface Battle {
+  id: string | number;
+  initiator_id: string | number;
+  opponent_id: string | number | null;
+  opponent_tg_id: string; // Used for invitation if user not in DB yet
+  status: 'pending' | 'active' | 'finished' | 'cancelled' | 'declined';
+  winner_id: string | number | null;
+  loser_id: string | number | null;
+  initiator_habit_id: string | number;
+  opponent_habit_id: string | number | null;
+  initiator_habit_name: string;
+  opponent_habit_name: string | null;
+  created_at: string;
+  started_at: string | null;
+  ended_at: string | null;
+  last_notified: string | null;
+}
+
 interface Schema {
   habits: Habit[];
   logs: Log[];
   users: User[];
+  battles: Battle[];
 }
 
 const directusUrl = import.meta.env.VITE_DIRECTUS_URL || 'https://directus-production-8063.up.railway.app';

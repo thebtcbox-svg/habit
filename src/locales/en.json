@@ -68,5 +68,32 @@
     "milestone": "New Milestone",
     "keepCrushing": "Keep crushing your goals!",
     "continue": "Continue Journey"
+  },
+  "battle": {
+    "title": "Battle Mode",
+    "rules": "Rules",
+    "rule1": "Select a Focus Habit to start.",
+    "rule2": "Daily check: if you miss your habit, you lose.",
+    "rule3": "Winner: +100 XP | Loser: -50 XP.",
+    "rule4": "Only today's progress counts.",
+    "invite": "Invite Opponent",
+    "invitePlaceholder": "Telegram ID or Username",
+    "start": "Start Battle",
+    "cancel": "Cancel Invitation",
+    "pending": "Waiting for opponent...",
+    "active": "Battle Ongoing",
+    "opponent": "Opponent",
+    "you": "You",
+    "accept": "Accept",
+    "decline": "Decline",
+    "inviteText": "I want to battle you in Habit Tracker! ⚔️ Let's see who is more consistent. Start the bot here:",
+    "noFocusHabit": "Set a Focus Habit first!",
+    "battleResults": "Battle Results",
+    "victory": "Victory! +100 XP",
+    "defeat": "Defeat! -50 XP",
+    "draw": "Draw! No XP changed.",
+    "congrats": "Congratulations, champion! 🏆",
+    "motivation": "Don't give up! Consistency is key. 🦾",
+    "inviteNotification": "{{username}} has invited you to a battle! ⚔️"
   }
 }
