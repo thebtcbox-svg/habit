@@ -878,9 +878,22 @@ function App() {
       const userHabitName = battle.initiator_id === user?.id ? battle.initiator_habit_name : battle.opponent_habit_name;
       const oppHabitName = battle.initiator_id === user?.id ? battle.opponent_habit_name : battle.initiator_habit_name;
       const userDone = completedToday.includes(battle.initiator_id === user?.id ? battle.initiator_habit_id : battle.opponent_habit_id!);
+      
+      const startDate = battle.started_at ? new Date(battle.started_at) : new Date(battle.created_at);
+      const daysActive = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
       return (
         <div className="space-y-6">
-          <header className="flex justify-between items-center"><div className="flex items-center gap-2"><Swords className="w-6 h-6 text-red-500" /><h2 className="text-xl font-black uppercase tracking-tight">{t('battle.active')}</h2></div><div className="bg-red-50 px-3 py-1 rounded-full border border-red-100"><span className="text-red-600 text-xs font-bold">LIVE</span></div></header>
+          <header className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Swords className="w-6 h-6 text-red-500" />
+              <div>
+                <h2 className="text-xl font-black uppercase tracking-tight leading-none">{t('battle.active')}</h2>
+                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{t('battle.day')} {daysActive}</p>
+              </div>
+            </div>
+            <div className="bg-red-50 px-3 py-1 rounded-full border border-red-100"><span className="text-red-600 text-xs font-bold">LIVE</span></div>
+          </header>
           <div className="grid grid-cols-2 gap-4">
             <div className={`p-6 rounded-3xl border-2 ${userDone ? 'bg-green-50 border-green-200' : 'bg-white border-slate-100'}`}>
               <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center mb-4"><UserIcon className="w-5 h-5 text-indigo-600" /></div>
