@@ -656,6 +656,38 @@ function App() {
     }
   };
 
+  const surrenderBattle = async () => {
+    if (!battle || !user || !opponent) return;
+    WebApp.showConfirm(t('battle.surrenderConfirm'), async (confirmed) => {
+      if (confirmed) {
+        try {
+          await directus.request(updateItem('battles', battle.id as any, {
+            status: 'finished',
+            winner_id: opponent.id,
+            loser_id: user.id,
+            ended_at: new Date().toISOString()
+          }));
+          
+          // XP changes
+          await directus.request(updateItem('users', user.id as any, {
+            total_xp: Math.max(0, (user.total_xp || 0) - 50)
+          }));
+          await directus.request(updateItem('users', opponent.id as any, {
+            total_xp: (opponent.total_xp || 0) + 100
+          }));
+          
+          setUser(prev => prev ? { ...prev, total_xp: Math.max(0, (prev.total_xp || 0) - 50) } : null);
+          setBattle(null);
+          setOpponent(null);
+          WebApp.HapticFeedback.notificationOccurred('warning');
+          WebApp.showAlert(t('battle.surrenderAlert'));
+        } catch (error) {
+          console.error('Error surrendering battle:', error);
+        }
+      }
+    });
+  };
+
   const renameHabit = async (habitId: string | number) => {
     if (!editingHabitName.trim()) return;
     try {
@@ -833,7 +865,11 @@ function App() {
           <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
             <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><ShieldAlert className="w-5 h-5 text-indigo-500" />{t('battle.rules')}</h3>
             <ul className="space-y-3 text-sm text-slate-600">
-              <li>1. {t('battle.rule1')}</li><li>2. {t('battle.rule2')}</li><li>3. {t('battle.rule3')}</li><li>4. {t('battle.rule4')}</li>
+              <li>1. {t('battle.rule1')}</li>
+              <li>2. {t('battle.rule2')}</li>
+              <li>3. {t('battle.rule3')}</li>
+              <li>4. {t('battle.rule4')}</li>
+              <li>5. {t('battle.rule5')}</li>
             </ul>
           </section>
           <section className="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg">
@@ -906,6 +942,9 @@ function App() {
               <div className={`text-xs font-black px-2 py-1 rounded-lg inline-block ${opponentCompletedToday ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-400'}`}>{opponentCompletedToday ? t('common.done').toUpperCase() : t('common.missed').toUpperCase()}</div>
             </div>
           </div>
+          <button onClick={surrenderBattle} className="w-full py-4 text-red-500 font-bold hover:bg-red-50 rounded-2xl transition-colors mt-4">
+            {t('battle.surrender')}
+          </button>
         </div>
       );
     }
