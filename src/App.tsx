@@ -1039,7 +1039,7 @@ function App() {
 
           <div className="space-y-3">
             {/* User Card */}
-            <div className={`p-5 rounded-3xl border-2 transition-all ${userDone ? 'bg-green-100 border-green-300' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <div key="user-card" className={`relative p-5 rounded-3xl border-2 transition-all ${userDone ? 'bg-green-100 border-green-300' : 'bg-white border-slate-100 shadow-sm'}`}>
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm"><UserIcon className="w-5 h-5 text-indigo-600" /></div>
@@ -1066,7 +1066,7 @@ function App() {
             </div>
 
             {/* Opponent Card */}
-            <div className={`p-5 rounded-3xl border-2 transition-all ${opponentCompletedToday ? 'bg-green-100 border-green-300' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <div key="opponent-card" className={`relative p-5 rounded-3xl border-2 transition-all ${opponentCompletedToday ? 'bg-green-100 border-green-300' : 'bg-white border-slate-100 shadow-sm'}`}>
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm"><ShieldAlert className="w-5 h-5 text-red-600" /></div>
