@@ -28,7 +28,8 @@
     "title": "Kemajuan",
     "habitXpMonth": "XP Kebiasaan (Bulan)",
     "daysDone": "Hari Selesai",
-    "noNotes": "Tidak ada catatan untuk hari ini."
+    "noNotes": "Tidak ada catatan untuk hari ini.",
+    "xpRemaining": "Tersisa {{xp}} XP"
   },
   "settings": {
     "title": "Pengaturan",
@@ -68,5 +69,43 @@
     "milestone": "Pencapaian Baru",
     "keepCrushing": "Teruslah hancurkan target Anda!",
     "continue": "Lanjutkan Perjalanan"
+  },
+  "battle": {
+    "title": "Mode Pertempuran",
+    "comingSoon": "Segera Hadir",
+    "premiumOnly": "Mode pertempuran saat ini dalam pengujian dan hanya tersedia untuk pengguna Premium. 🛡️",
+    "opponentNotPremium": "Pengguna ini bukan pengguna Premium. Pertempuran saat ini hanya tersedia antar pengguna Premium.",
+    "opponentBusy": "Pengguna ini sudah dalam pertempuran. Anda hanya dapat bertempur dengan pengguna yang saat ini tidak terlibat dalam pertempuran lain.",
+    "rules": "Aturan",
+    "rule1": "Pilih Kebiasaan Fokus untuk memulai.",
+    "rule2": "Pemeriksaan harian: jika Anda melewatkan kebiasaan Anda, Anda kalah.",
+    "rule3": "Pemenang: +100 XP | Pecundang: -50 XP.",
+    "rule4": "Hanya progres hari ini yang dihitung.",
+    "rule5": "Jika keduanya meleset, keduanya kehilangan -50 XP.",
+    "invite": "Undang Lawan",
+    "invitePlaceholder": "Nama Pengguna",
+    "start": "Mulai Pertempuran",
+    "cancel": "Batalkan Undangan",
+    "pending": "Menunggu lawan...",
+    "active": "Pertempuran Berlangsung",
+    "day": "Hari",
+    "opponent": "Lawan",
+    "you": "Anda",
+    "accept": "Terima",
+    "decline": "Tolak",
+    "surrender": "Menyerah",
+    "surrenderConfirm": "Apakah Anda yakin ingin menyerah? Anda akan kehilangan 50 XP dan lawan Anda akan menang.",
+    "surrenderAlert": "Pertempuran menyerah! -50 XP",
+    "inviteText": "Saya ingin bertempur dengan Anda di Habit Tracker! ⚔️ Mari kita lihat siapa yang lebih konsisten. Mulai bot di sini: ",
+    "noFocusHabit": "Tetapkan Kebiasaan Fokus terlebih dahulu!",
+    "battleResults": "Hasil Pertempuran",
+    "victory": "Kemenangan! +100 XP",
+    "defeat": "Kekalahan! -50 XP",
+    "draw": "Seri! Tidak ada perubahan XP.",
+    "history": "Riwayat Pertempuran",
+    "startFirst": "Mulai pertempuran pertama Anda!",
+    "congrats": "Selamat, juara! 🏆",
+    "motivation": "Jangan menyerah! Konsistensi adalah kunci. 🦾",
+    "inviteNotification": "{{username}} telah mengundang Anda ke pertempuran! ⚔️"
   }
 }

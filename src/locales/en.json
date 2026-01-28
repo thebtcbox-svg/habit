@@ -28,7 +28,8 @@
     "title": "Progress",
     "habitXpMonth": "Habit XP (Month)",
     "daysDone": "Days Done",
-    "noNotes": "No notes for this day."
+    "noNotes": "No notes for this day.",
+    "xpRemaining": "{{xp}} XP left"
   },
   "settings": {
     "title": "Settings",

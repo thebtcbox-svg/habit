@@ -27,8 +27,9 @@
   "progress": {
     "title": "Fortschritt",
     "habitXpMonth": "Gewohnheits-XP (Monat)",
-    "daysDone": "Tage erledigt",
-    "noNotes": "Keine Notizen für diesen Tag."
+    "daysDone": "Erledigte Tage",
+    "noNotes": "Keine Notizen für diesen Tag.",
+    "xpRemaining": "Noch {{xp}} XP"
   },
   "settings": {
     "title": "Einstellungen",
@@ -68,5 +69,43 @@
     "milestone": "Neuer Meilenstein",
     "keepCrushing": "Mach weiter so!",
     "continue": "Reise fortsetzen"
+  },
+  "battle": {
+    "title": "Kampf-Modus",
+    "comingSoon": "Demnächst verfügbar",
+    "premiumOnly": "Der Kampf-Modus wird derzeit getestet und ist nur für Premium-Benutzer verfügbar. 🛡️",
+    "opponentNotPremium": "Dieser Benutzer ist kein Premium-Benutzer. Kämpfe sind derzeit nur zwischen Premium-Benutzern möglich.",
+    "opponentBusy": "Dieser Benutzer befindet sich bereits in einem Kampf. Du kannst nur gegen Benutzer kämpfen, die derzeit nicht beschäftigt sind.",
+    "rules": "Regeln",
+    "rule1": "Wähle eine Fokus-Gewohnheit, um zu beginnen.",
+    "rule2": "Täglicher Check: Wenn du deine Gewohnheit verpasst, verlierst du.",
+    "rule3": "Gewinner: +100 XP | Verlierer: -50 XP.",
+    "rule4": "Nur der heutige Fortschritt zählt.",
+    "rule5": "Wenn beide verpassen, verlieren beide -50 XP.",
+    "invite": "Gegner einladen",
+    "invitePlaceholder": "Benutzername",
+    "start": "Kampf starten",
+    "cancel": "Einladung stornieren",
+    "pending": "Warten auf Gegner...",
+    "active": "Kampf läuft",
+    "day": "Tag",
+    "opponent": "Gegner",
+    "you": "Du",
+    "accept": "Annehmen",
+    "decline": "Ablehnen",
+    "surrender": "Aufgeben",
+    "surrenderConfirm": "Bist du sicher, dass du aufgeben möchtest? Du verlierst 50 XP und dein Gegner gewinnt.",
+    "surrenderAlert": "Kampf aufgegeben! -50 XP",
+    "inviteText": "Ich möchte dich im Habit Tracker herausfordern! ⚔️ Mal sehen, wer konsequenter ist. Starte den Bot hier:",
+    "noFocusHabit": "Setze zuerst eine Fokus-Gewohnheit!",
+    "battleResults": "Kampfergebnisse",
+    "victory": "Sieg! +100 XP",
+    "defeat": "Niederlage! -50 XP",
+    "draw": "Unentschieden! Keine XP-Änderung.",
+    "history": "Kampfverlauf",
+    "startFirst": "Starte deinen ersten Kampf!",
+    "congrats": "Glückwunsch, Champion! 🏆",
+    "motivation": "Gib nicht auf! Beständigkeit ist der Schlüssel. 🦾",
+    "inviteNotification": "{{username}} hat dich zu einem Kampf eingeladen! ⚔️"
   }
 }

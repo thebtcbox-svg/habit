@@ -1266,7 +1266,9 @@ function App() {
     const isToday = selectedDate === new Date().toISOString().split('T')[0];
     const currentXP = user?.total_xp || 0;
     const currentLevel = getLevel(currentXP);
-    const progress = ((currentXP - getXpForLevel(currentLevel)) / (getXpForLevel(currentLevel + 1) - getXpForLevel(currentLevel))) * 100;
+    const nextLevelXP = getXpForLevel(currentLevel + 1);
+    const xpRemaining = nextLevelXP - currentXP;
+    const progress = ((currentXP - getXpForLevel(currentLevel)) / (nextLevelXP - getXpForLevel(currentLevel))) * 100;
 
     return (
       <>
@@ -1287,6 +1289,7 @@ function App() {
               <span className="text-slate-300 mx-1">|</span><span className="font-semibold text-slate-600 text-sm">{currentXP} XP</span>
             </div>
             <div className="w-36"><div className="h-2 bg-slate-200/50 rounded-full overflow-hidden p-[1px] border border-slate-100 shadow-inner"><div className="h-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 rounded-full transition-all duration-1000 ease-out shadow-sm" style={{ width: `${progress}%` }} /></div></div>
+            <p className="text-[10px] text-slate-400 font-bold mt-0.5">{t('progress.xpRemaining', { xp: xpRemaining })}</p>
           </div>
         </header>
 

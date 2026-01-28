@@ -26,9 +26,10 @@
   },
   "progress": {
     "title": "Progreso",
-    "habitXpMonth": "XP de Hábito (Mes)",
+    "habitXpMonth": "XP del Hábito (Mes)",
     "daysDone": "Días Completados",
-    "noNotes": "No hay notas para este día."
+    "noNotes": "Sin notas para este día.",
+    "xpRemaining": "Faltan {{xp}} XP"
   },
   "settings": {
     "title": "Ajustes",
@@ -68,5 +69,43 @@
     "milestone": "Nuevo Hito",
     "keepCrushing": "¡Sigue aplastando tus objetivos!",
     "continue": "Continuar Viaje"
+  },
+  "battle": {
+    "title": "Modo Batalla",
+    "comingSoon": "Próximamente",
+    "premiumOnly": "El modo batalla está actualmente en pruebas y disponible solo para usuarios Premium. 🛡️",
+    "opponentNotPremium": "Este usuario no es un usuario Premium. Las batallas actualmente solo están disponibles entre usuarios Premium.",
+    "opponentBusy": "Este usuario ya está en una batalla. Solo puedes luchar contra usuarios que no estén comprometidos actualmente en otra batalla.",
+    "rules": "Reglas",
+    "rule1": "Selecciona un Hábito de Enfoque para comenzar.",
+    "rule2": "Control diario: si pierdes tu hábito, pierdes.",
+    "rule3": "Ganador: +100 XP | Perdedor: -50 XP.",
+    "rule4": "Solo cuenta el progreso de hoy.",
+    "rule5": "Si ambos fallan, ambos pierden -50 XP.",
+    "invite": "Invitar Oponente",
+    "invitePlaceholder": "Nombre de usuario",
+    "start": "Iniciar Batalla",
+    "cancel": "Cancelar Invitación",
+    "pending": "Esperando oponente...",
+    "active": "Batalla en curso",
+    "day": "Día",
+    "opponent": "Oponente",
+    "you": "Tú",
+    "accept": "Aceptar",
+    "decline": "Rechazar",
+    "surrender": "Rendirse",
+    "surrenderConfirm": "¿Estás seguro de que quieres rendirte? Perderás 50 XP y tu oponente ganará.",
+    "surrenderAlert": "¡Batalla rendida! -50 XP",
+    "inviteText": "¡Quiero luchar contigo en Habit Tracker! ⚔️ Veamos quién es más constante. Inicia el bot aquí:",
+    "noFocusHabit": "¡Establece un Hábito de Enfoque primero!",
+    "battleResults": "Resultados de la Batalla",
+    "victory": "¡Victoria! +100 XP",
+    "defeat": "¡Derrota! -50 XP",
+    "draw": "¡Empate! Sin cambios de XP.",
+    "history": "Historial de Batallas",
+    "startFirst": "¡Comienza tu primera batalla!",
+    "congrats": "¡Felicidades, campeón! 🏆",
+    "motivation": "¡No te rindas! La constancia es la clave. 🦾",
+    "inviteNotification": "¡{{username}} te ha invitado a una batalla! ⚔️"
   }
 }
