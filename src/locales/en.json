@@ -74,6 +74,7 @@
     "comingSoon": "Coming Soon",
     "premiumOnly": "Battle Mode is currently in testing and available only for Premium users. 🛡️",
     "opponentNotPremium": "This user is not a Premium user. Battles are currently only available between Premium users.",
+    "opponentBusy": "This user is already in a battle. You can only battle users who are not currently engaged in another battle.",
     "rules": "Rules",
     "rule1": "Select a Focus Habit to start.",
     "rule2": "Daily check: if you miss your habit, you lose.",

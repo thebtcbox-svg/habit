@@ -612,6 +612,22 @@ function App() {
           WebApp.showAlert(t('battle.opponentNotPremium'));
           return;
         }
+
+        // Check if opponent already in battle
+        const activeBattles = await directus.request(readItems('battles', {
+          filter: {
+            _and: [
+              { _or: [{ initiator_id: { _eq: targetOpponent.id } }, { opponent_id: { _eq: targetOpponent.id } }, { opponent_tg_id: { _eq: targetOpponent.telegram_id } }] },
+              { status: { _in: ['pending', 'active'] } }
+            ]
+          } as any
+        }));
+
+        if (activeBattles.length > 0) {
+          WebApp.showAlert(t('battle.opponentBusy'));
+          return;
+        }
+
         const newBattle = await directus.request(createItem('battles', {
           initiator_id: user.id,
           opponent_id: targetOpponent.id,
