@@ -47,6 +47,7 @@ function App() {
   const [opponentTgId, setOpponentTgId] = useState('');
   const [isSearchingOpponent, setIsSearchingOpponent] = useState(false);
   const [opponentCompletedToday, setOpponentCompletedToday] = useState(false);
+  const [battleHistory, setBattleHistory] = useState<(Battle & { opponent_name?: string })[]>([]);
 
   const calculateStreak = (habitId: string | number, allLogs: Log[]) => {
     const habitLogs = allLogs
@@ -285,6 +286,28 @@ function App() {
         } else {
           setOpponentCompletedToday(false);
         }
+
+        // Fetch battle history
+        const history = await directus.request(readItems('battles', {
+          filter: {
+            _and: [
+              { _or: [{ initiator_id: { _eq: user.id } }, { opponent_id: { _eq: user.id } }] },
+              { status: { _eq: 'finished' } }
+            ]
+          } as any,
+          sort: ['-ended_at'] as any,
+          limit: 10
+        })) as Battle[];
+
+        const historyWithNames = await Promise.all(history.map(async (b) => {
+          const oppId = b.initiator_id === user.id ? b.opponent_id : b.initiator_id;
+          if (oppId) {
+            const opps = await directus.request(readItems('users', { filter: { id: { _eq: oppId } } }));
+            return { ...b, opponent_name: opps[0]?.username || 'Unknown' };
+          }
+          return b;
+        }));
+        setBattleHistory(historyWithNames);
       } catch (err) {
         console.error('Failed to fetch habits/logs/battle:', err);
       } finally {
@@ -964,6 +987,38 @@ function App() {
           <button onClick={surrenderBattle} className="w-full py-4 text-red-500 font-bold hover:bg-red-50 rounded-2xl transition-colors mt-4">
             {t('battle.surrender')}
           </button>
+
+          {battleHistory.length > 0 && (
+            <section className="mt-8">
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">{t('battle.history')}</h3>
+              <div className="space-y-3">
+                {battleHistory.map((h) => {
+                  const isWinner = h.winner_id === user?.id;
+                  const isDraw = !h.winner_id && !h.loser_id;
+                  const start = new Date(h.started_at || h.created_at);
+                  const end = new Date(h.ended_at!);
+                  const days = Math.max(1, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+                  
+                  return (
+                    <div key={h.id} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isWinner ? 'bg-green-100 text-green-600' : isDraw ? 'bg-slate-100 text-slate-600' : 'bg-red-100 text-red-600'}`}>
+                          {isWinner ? <Trophy className="w-5 h-5" /> : isDraw ? <Swords className="w-5 h-5" /> : <X className="w-5 h-5" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">@{h.opponent_name}</p>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">{days} {t('today.days')}</p>
+                        </div>
+                      </div>
+                      <div className={`text-[10px] font-black px-2 py-1 rounded-lg ${isWinner ? 'bg-green-500 text-white' : isDraw ? 'bg-slate-200 text-slate-600' : 'bg-red-500 text-white'}`}>
+                        {isWinner ? t('battle.victory').split('!')[0].toUpperCase() : isDraw ? t('battle.draw').split('!')[0].toUpperCase() : t('battle.defeat').split('!')[0].toUpperCase()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
       );
     }
@@ -1112,6 +1167,7 @@ function App() {
           </div>
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
+              {user?.premium && <div className="bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full mr-1 tracking-tighter">PREMIUM</div>}
               <Trophy className="w-4 h-4 text-yellow-500" /><span className="font-bold text-slate-700 text-sm">Lvl {currentLevel}</span>
               <span className="text-slate-300 mx-1">|</span><span className="font-semibold text-slate-600 text-sm">{currentXP} XP</span>
             </div>
