@@ -19,18 +19,60 @@ const STREAK_BONUSES: Record<number, number> = {
 
 function App() {
   const { t, i18n } = useTranslation();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('habit_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     document.dir = i18n.dir();
   }, [i18n.language]);
-  const [habits, setHabits] = useState<Habit[]>([]);
+  const [habits, setHabits] = useState<Habit[]>(() => {
+    try {
+      const saved = localStorage.getItem('habit_habits');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [loading, setLoading] = useState(true);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [completedToday, setCompletedToday] = useState<(string | number)[]>([]);
+  const [completedToday, setCompletedToday] = useState<(string | number)[]>(() => {
+    try {
+      const saved = localStorage.getItem('habit_completed_today');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const today = new Date().toISOString().split('T')[0];
+        if (parsed.date === today) return parsed.ids;
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
   const [activeTab, setActiveTab] = useState<'today' | 'calendar' | 'settings' | 'battle'>('today');
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('habit_user', JSON.stringify(user));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    localStorage.setItem('habit_habits', JSON.stringify(habits));
+  }, [habits]);
+
+  useEffect(() => {
+    localStorage.setItem('habit_completed_today', JSON.stringify({
+      date: selectedDate,
+      ids: completedToday
+    }));
+  }, [completedToday, selectedDate]);
   const [selectedHabitId, setSelectedHabitId] = useState<string | number | null>(null);
   const [habitLogs, setHabitLogs] = useState<Log[]>([]);
   const [isAddingNote, setIsAddingNote] = useState<string | number | null>(null);
@@ -1034,7 +1076,7 @@ function App() {
                 <p className="text-xs font-bold text-indigo-600 mt-1 uppercase tracking-widest">{t('battle.day')} {daysActive}</p>
               </div>
             </div>
-            <div className="bg-red-500 px-3 py-1 rounded-full animate-pulse shadow-lg shadow-red-100"><span className="text-white text-[10px] font-black tracking-tighter">LIVE</span></div>
+            <div className="bg-red-500 px-3 py-1 rounded-full animate-pulse shadow-lg shadow-red-100 flex items-center justify-center"><span className="text-white text-[10px] font-black tracking-tighter">LIVE</span></div>
           </header>
 
           <div className="space-y-3">
