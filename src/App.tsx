@@ -700,6 +700,48 @@ function App() {
     }
   };
 
+  const renderHistory = () => {
+    if (battleHistory.length === 0) {
+      return (
+        <section className="mt-8 text-center p-8 bg-white rounded-3xl border-2 border-dashed border-slate-100">
+          <Trophy className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">{t('battle.startFirst')}</p>
+        </section>
+      );
+    }
+    return (
+      <section className="mt-8">
+        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">{t('battle.history')}</h3>
+        <div className="space-y-3">
+          {battleHistory.map((h) => {
+            const isWinner = h.winner_id === user?.id;
+            const isDraw = !h.winner_id && !h.loser_id;
+            const start = new Date(h.started_at || h.created_at);
+            const end = new Date(h.ended_at!);
+            const days = Math.max(1, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+            
+            return (
+              <div key={h.id} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isWinner ? 'bg-green-100 text-green-600' : isDraw ? 'bg-slate-100 text-slate-600' : 'bg-red-100 text-red-600'}`}>
+                    {isWinner ? <Trophy className="w-5 h-5" /> : isDraw ? <Swords className="w-5 h-5" /> : <X className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">@{h.opponent_name}</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold">{days} {t('today.days')}</p>
+                  </div>
+                </div>
+                <div className={`text-[10px] font-black px-2 py-1 rounded-lg ${isWinner ? 'bg-green-500 text-white' : isDraw ? 'bg-slate-200 text-slate-600' : 'bg-red-500 text-white'}`}>
+                  {isWinner ? t('battle.victory').split('!')[0].toUpperCase() : isDraw ? t('battle.draw').split('!')[0].toUpperCase() : t('battle.defeat').split('!')[0].toUpperCase()}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    );
+  };
+
   const surrenderBattle = async () => {
     if (!battle || !user || !opponent) return;
     WebApp.showConfirm(t('battle.surrenderConfirm'), async (confirmed) => {
@@ -918,18 +960,8 @@ function App() {
     }
     if (!battle) {
       return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-12">
           <header className="flex items-center gap-3"><Swords className="w-8 h-8 text-indigo-600" /><h2 className="text-2xl font-bold">{t('battle.title')}</h2></header>
-          <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><ShieldAlert className="w-5 h-5 text-indigo-500" />{t('battle.rules')}</h3>
-            <ul className="space-y-3 text-sm text-slate-600">
-              <li>1. {t('battle.rule1')}</li>
-              <li>2. {t('battle.rule2')}</li>
-              <li>3. {t('battle.rule3')}</li>
-              <li>4. {t('battle.rule4')}</li>
-              <li>5. {t('battle.rule5')}</li>
-            </ul>
-          </section>
           <section className="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg">
             <h3 className="text-lg font-bold mb-4">{t('battle.invite')}</h3>
             <div className="space-y-4">
@@ -948,23 +980,37 @@ function App() {
               </button>
             </div>
           </section>
+          <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><ShieldAlert className="w-5 h-5 text-indigo-500" />{t('battle.rules')}</h3>
+            <ul className="space-y-3 text-sm text-slate-600">
+              <li>1. {t('battle.rule1')}</li>
+              <li>2. {t('battle.rule2')}</li>
+              <li>3. {t('battle.rule3')}</li>
+              <li>4. {t('battle.rule4')}</li>
+              <li>5. {t('battle.rule5')}</li>
+            </ul>
+          </section>
+          {renderHistory()}
         </div>
       );
     }
     if (battle.status === 'pending') {
       const isInitiator = battle.initiator_id === user?.id;
       return (
-        <div className="flex flex-col items-center justify-center h-[70vh] text-center space-y-6 animate-in fade-in zoom-in-95">
-          <div className="relative"><div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center animate-pulse"><Swords className="w-12 h-12 text-indigo-600" /></div><div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full border-2 border-white" /></div>
-          <div><h3 className="text-xl font-bold text-slate-800">{isInitiator ? t('battle.pending') : t('battle.inviteNotification', { username: opponent?.username || 'Somebody' })}</h3></div>
-          {!isInitiator ? (
-            <div className="flex gap-4 w-full px-6">
-              <button onClick={() => respondToBattle(false)} className="flex-1 py-4 bg-slate-200 text-slate-700 rounded-2xl font-bold active:scale-95 transition-all">{t('battle.decline')}</button>
-              <button onClick={() => respondToBattle(true)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-200">{t('battle.accept')}</button>
-            </div>
-          ) : (
-            <button onClick={cancelBattle} className="py-3 px-8 text-red-500 font-bold hover:bg-red-50 rounded-xl transition-colors">{t('battle.cancel')}</button>
-          )}
+        <div className="space-y-8 animate-in fade-in zoom-in-95 pb-12">
+          <div className="flex flex-col items-center justify-center pt-12 text-center space-y-6">
+            <div className="relative"><div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center animate-pulse"><Swords className="w-12 h-12 text-indigo-600" /></div><div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full border-2 border-white" /></div>
+            <div><h3 className="text-xl font-bold text-slate-800">{isInitiator ? t('battle.pending') : t('battle.inviteNotification', { username: opponent?.username || 'Somebody' })}</h3></div>
+            {!isInitiator ? (
+              <div className="flex gap-4 w-full px-6">
+                <button onClick={() => respondToBattle(false)} className="flex-1 py-4 bg-slate-200 text-slate-700 rounded-2xl font-bold active:scale-95 transition-all">{t('battle.decline')}</button>
+                <button onClick={() => respondToBattle(true)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-200">{t('battle.accept')}</button>
+              </div>
+            ) : (
+              <button onClick={cancelBattle} className="py-3 px-8 text-red-500 font-bold hover:bg-red-50 rounded-xl transition-colors">{t('battle.cancel')}</button>
+            )}
+          </div>
+          {renderHistory()}
         </div>
       );
     }

@@ -102,6 +102,7 @@
     "defeat": "Defeat! -50 XP",
     "draw": "Draw! No XP changed.",
     "history": "Battle History",
+    "startFirst": "Start your first battle!",
     "congrats": "Congratulations, champion! 🏆",
     "motivation": "Don't give up! Consistency is key. 🦾",
     "inviteNotification": "{{username}} has invited you to a battle! ⚔️"
