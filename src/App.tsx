@@ -1007,7 +1007,7 @@ function App() {
 
         {focusHabit && (
         <section className="mb-8">
-          <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden">
+          <div className={`${completedToday.includes(focusHabit.id) ? 'bg-indigo-600' : 'bg-indigo-400'} rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden transition-colors duration-300`}>
             {user?.premium && (
               <div className="absolute top-0 right-0 bg-yellow-400 text-indigo-900 text-[10px] font-black px-2 py-1 rounded-bl-xl uppercase tracking-widest z-20 shadow-sm">
                 Premium
@@ -1028,7 +1028,7 @@ function App() {
                     className={`p-3 rounded-xl font-bold flex items-center gap-2 active:scale-95 transition-all ${
                       completedToday.includes(focusHabit.id) 
                       ? 'bg-indigo-400 text-white' 
-                      : 'bg-white text-indigo-600'
+                      : 'bg-white text-indigo-400'
                     }`}
                   >
                     <CheckCircle2 className="w-6 h-6" />
@@ -1057,7 +1057,7 @@ function App() {
             <div key={habit.id} className="space-y-2">
               <div 
                 onClick={() => toggleHabit(habit.id)}
-                className="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm border border-slate-100 active:scale-[0.98] transition-transform cursor-pointer"
+                className={`${completedToday.includes(habit.id) ? 'bg-green-50 border-green-100' : 'bg-white border-slate-100'} p-4 rounded-xl flex items-center justify-between shadow-sm border active:scale-[0.98] transition-all cursor-pointer`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center">
