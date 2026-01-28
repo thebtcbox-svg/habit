@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { directus, Habit, User, Log, Battle } from './lib/directus';
 import { readItems, createItem, updateItem, deleteItem, deleteItems } from '@directus/sdk';
-import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown, Sparkles, Heart, Share2, Languages, Swords, ShieldAlert, User as UserIcon } from 'lucide-react';
+import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown, Sparkles, Heart, Share2, Languages, Swords, ShieldAlert, User as UserIcon, Crown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import confetti from 'canvas-confetti';
 import axios from 'axios';
@@ -932,7 +932,7 @@ function App() {
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
             <div className="flex justify-between items-center mb-2">
               <h4 className="font-bold text-slate-800">{new Date(selectedCalendarDay).toLocaleDateString('default', { month: 'short', day: 'numeric' })}</h4>
-              <span className={`text-xs font-bold px-2 py-1 rounded-full ${selectedDayLog?.status === 'done' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+              <span className={`text-xs font-bold px-2 py-1 rounded-full ${selectedDayLog?.status === 'done' ? 'bg-green-100 text-green-600' : 'bg-red-50 text-red-600'}`}>
                 {selectedDayLog?.status === 'done' ? t('common.complete') : t('common.missed')}
               </span>
             </div>
@@ -1039,13 +1039,20 @@ function App() {
 
           <div className="space-y-3">
             {/* User Card */}
-            <div className={`p-5 rounded-3xl border-2 transition-all ${userDone ? 'bg-green-50 border-green-200' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <div className={`p-5 rounded-3xl border-2 transition-all ${userDone ? 'bg-green-100 border-green-300' : 'bg-white border-slate-100 shadow-sm'}`}>
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm"><UserIcon className="w-5 h-5 text-indigo-600" /></div>
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('battle.you')}</p>
-                    <p className="font-bold text-slate-800">@{user?.username}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-bold text-slate-800">@{user?.username}</p>
+                      {user?.premium && (
+                        <div className="bg-gradient-to-br from-amber-300 to-amber-600 p-0.5 rounded-full">
+                          <Crown className="w-2.5 h-2.5 text-white fill-white" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className={`text-[10px] font-black px-3 py-1.5 rounded-full ${userDone ? 'bg-green-500 text-white shadow-md shadow-green-100' : 'bg-slate-100 text-slate-400'}`}>
@@ -1059,13 +1066,20 @@ function App() {
             </div>
 
             {/* Opponent Card */}
-            <div className={`p-5 rounded-3xl border-2 transition-all ${opponentCompletedToday ? 'bg-green-50 border-green-200' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <div className={`p-5 rounded-3xl border-2 transition-all ${opponentCompletedToday ? 'bg-green-100 border-green-300' : 'bg-white border-slate-100 shadow-sm'}`}>
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm"><ShieldAlert className="w-5 h-5 text-red-600" /></div>
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('battle.opponent')}</p>
-                    <p className="font-bold text-slate-800">@{opponent?.username || 'Somebody'}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-bold text-slate-800">@{opponent?.username || 'Somebody'}</p>
+                      {opponent?.premium && (
+                        <div className="bg-gradient-to-br from-amber-300 to-amber-600 p-0.5 rounded-full">
+                          <Crown className="w-2.5 h-2.5 text-white fill-white" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className={`text-[10px] font-black px-3 py-1.5 rounded-full ${opponentCompletedToday ? 'bg-green-500 text-white shadow-md shadow-green-100' : 'bg-slate-100 text-slate-400'}`}>
@@ -1225,7 +1239,14 @@ function App() {
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm divide-y divide-slate-50">
               <div className="p-4 flex justify-between items-center">
                 <span className="text-sm text-slate-600">{t('settings.username')}</span>
-                <span className="text-sm font-bold text-slate-800">@{user?.username}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-800">@{user?.username}</span>
+                  {user?.premium && (
+                    <div className="bg-gradient-to-br from-amber-300 to-amber-600 p-1 rounded-full shadow-sm">
+                      <Crown className="w-3 h-3 text-white fill-white" />
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="p-4 flex justify-between items-center">
                 <span className="text-sm text-slate-600">{t('settings.telegramId')}</span>
@@ -1262,7 +1283,6 @@ function App() {
           </div>
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
-              {user?.premium && <div className="bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full mr-1 tracking-tighter">PREMIUM</div>}
               <Trophy className="w-4 h-4 text-yellow-500" /><span className="font-bold text-slate-700 text-sm">Lvl {currentLevel}</span>
               <span className="text-slate-300 mx-1">|</span><span className="font-semibold text-slate-600 text-sm">{currentXP} XP</span>
             </div>
@@ -1273,6 +1293,12 @@ function App() {
         {focusHabit && (
           <section className="mb-8">
             <div className={`${completedToday.includes(focusHabit.id) ? 'bg-indigo-600' : 'bg-indigo-400'} rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden transition-colors duration-300`}>
+              {user?.premium && (
+                <div className="absolute top-4 right-4 bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-xl flex items-center gap-1 z-20 border border-amber-200/50 animate-in fade-in slide-in-from-top-2 duration-500">
+                  <Crown className="w-3 h-3 fill-white" />
+                  <span className="tracking-wider">PREMIUM</span>
+                </div>
+              )}
               <Star className="absolute -right-4 -top-4 w-24 h-24 text-indigo-500 opacity-50" />
               <div className="relative z-10">
                 <span className="text-indigo-200 text-xs font-bold uppercase tracking-wider">{t('today.focusHabit')}</span>
@@ -1296,7 +1322,7 @@ function App() {
           <div className="space-y-3">
             {otherHabits.map(habit => (
               <div key={habit.id} className="space-y-2">
-                <div onClick={() => toggleHabit(habit.id)} className={`${completedToday.includes(habit.id) ? 'bg-green-50 border-green-100' : 'bg-white border-slate-100'} p-4 rounded-xl flex items-center justify-between shadow-sm border active:scale-[0.98] transition-all cursor-pointer`}>
+                <div onClick={() => toggleHabit(habit.id)} className={`${completedToday.includes(habit.id) ? 'bg-green-100 border-green-300' : 'bg-white border-slate-100'} p-4 rounded-xl flex items-center justify-between shadow-sm border active:scale-[0.98] transition-all cursor-pointer`}>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center">{completedToday.includes(habit.id) ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <Circle className="w-5 h-5 text-slate-300" />}</div>
                     <div><h4 className="font-semibold">{habit.name}</h4><p className="text-xs text-slate-400">{habit.streak} {t('today.days')}</p></div>
