@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { directus, Habit, User, Log } from './lib/directus';
-import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
+import { readItems, createItem, updateItem, deleteItem, deleteItems } from '@directus/sdk';
 import { CheckCircle2, Circle, Star, Trophy, Plus, Settings, X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Trash2, Bell, BellOff, MessageSquare, Save, Pencil, Check, ChevronUp, ChevronDown, Sparkles, Heart, Share2, Languages } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import confetti from 'canvas-confetti';
@@ -436,34 +436,36 @@ function App() {
     WebApp.showConfirm('Are you sure you want to delete this habit? All XP earned from this habit will be removed.', async (confirmed) => {
       if (confirmed) {
         try {
-          // 1. Count completions to subtract XP
+          // 1. Fetch all logs for this habit to calculate XP and delete them
           const logs = await directus.request(readItems('logs', {
-            filter: { 
-              habit_id: { _eq: habitId },
-              status: { _eq: 'done' }
-            },
+            filter: { habit_id: { _eq: habitId } },
             limit: -1
-          }));
+          })) as Log[];
           
-          const habit = habits.find(h => h.id === habitId);
-          const xpValue = habit?.is_focus ? 25 : 10;
-          const xpToSubtract = logs.length * xpValue;
+          const xpToSubtract = logs.reduce((acc, log) => acc + (log.xp_earned || 0), 0);
 
-          // 2. Update User XP
+          // 2. Delete logs first to avoid foreign key constraint issues
+          if (logs.length > 0) {
+            const logIds = logs.map(l => l.id) as any[];
+            await directus.request(deleteItems('logs', logIds));
+          }
+
+          // 3. Update User XP
           await directus.request(updateItem('users', user.id as any, {
             total_xp: Math.max(0, (user.total_xp || 0) - xpToSubtract)
           }));
 
-          // 3. Delete Habit
+          // 4. Delete Habit
           // @ts-ignore
           await directus.request(deleteItem('habits', habitId));
           
           // Update local state
-          setHabits(prev => prev.filter(h => h.id !== habitId));
+          setHabits(prev => prev.filter(h => String(h.id) !== String(habitId)));
           setUser(prev => prev ? { ...prev, total_xp: Math.max(0, (prev.total_xp || 0) - xpToSubtract) } : null);
           
-          if (selectedHabitId === habitId) {
-            setSelectedHabitId(habits.find(h => h.id !== habitId)?.id || null);
+          if (String(selectedHabitId) === String(habitId)) {
+            const remainingHabits = habits.filter(h => String(h.id) !== String(habitId));
+            setSelectedHabitId(remainingHabits.length > 0 ? remainingHabits[0].id : null);
           }
           
           WebApp.HapticFeedback.notificationOccurred('success');
