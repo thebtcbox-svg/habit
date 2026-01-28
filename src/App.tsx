@@ -209,6 +209,41 @@ function App() {
 
     const fetchData = async () => {
       try {
+        // Fetch latest battle status
+        const battles = await directus.request(readItems('battles', {
+          filter: {
+            _or: [
+              { initiator_id: { _eq: user.id } },
+              { opponent_id: { _eq: user.id } },
+              { opponent_tg_id: { _eq: user.telegram_id } }
+            ],
+            status: { _in: ['pending', 'active'] }
+          } as any
+        }));
+
+        let latestBattle: Battle | null = null;
+        if (battles.length > 0) {
+          latestBattle = battles[0] as Battle;
+          // Auto-assign opponent_id if it's missing (invitation accepted via bot or just joined)
+          if (!latestBattle.opponent_id && latestBattle.opponent_tg_id === user.telegram_id) {
+            await directus.request(updateItem('battles', latestBattle.id as any, { opponent_id: user.id }));
+            latestBattle.opponent_id = user.id;
+          }
+          
+          if (JSON.stringify(latestBattle) !== JSON.stringify(battle)) {
+            setBattle(latestBattle);
+          }
+          
+          const oppId = latestBattle.initiator_id === user.id ? latestBattle.opponent_id : latestBattle.initiator_id;
+          if (oppId && (!opponent || opponent.id !== oppId)) {
+            const opps = await directus.request(readItems('users', { filter: { id: { _eq: oppId } } }));
+            if (opps.length > 0) setOpponent(opps[0] as User);
+          }
+        } else if (battle) {
+          setBattle(null);
+          setOpponent(null);
+        }
+
         const fetchedHabits = await directus.request(readItems('habits', {
           filter: { user_id: { _eq: user.id } },
           sort: ['sort'] as any
@@ -231,8 +266,10 @@ function App() {
         const userDateLogs = allLogs.filter(log => log.date === selectedDate);
         setCompletedToday(userDateLogs.map(log => log.habit_id));
 
-        if (battle && battle.status === 'active' && opponent) {
-          const oppHabitId = battle.initiator_id === opponent.id ? battle.initiator_habit_id : battle.opponent_habit_id;
+        if (latestBattle && latestBattle.status === 'active') {
+          const isInitiator = latestBattle.initiator_id === user.id;
+          const oppHabitId = isInitiator ? latestBattle.opponent_habit_id : latestBattle.initiator_habit_id;
+          
           if (oppHabitId) {
             const oppLogs = await directus.request(readItems('logs', {
               filter: {
@@ -242,17 +279,21 @@ function App() {
               } as any
             }));
             setOpponentCompletedToday(oppLogs.length > 0);
+          } else {
+            setOpponentCompletedToday(false);
           }
+        } else {
+          setOpponentCompletedToday(false);
         }
       } catch (err) {
-        console.error('Failed to fetch habits/logs:', err);
+        console.error('Failed to fetch habits/logs/battle:', err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [user?.id, selectedDate, battle?.id]);
+  }, [user?.id, selectedDate, activeTab]);
 
   const toggleHabit = async (habitId: string | number) => {
     if (!user) return;
@@ -525,7 +566,8 @@ function App() {
   };
 
   const startBattle = async () => {
-    if (!user || !opponentTgId.trim()) return;
+    const username = opponentTgId.trim().replace('@', '');
+    if (!user || !username) return;
     const focus = habits.find(h => h.is_focus);
     if (!focus) {
       WebApp.showAlert(t('battle.noFocusHabit'));
@@ -536,10 +578,7 @@ function App() {
     try {
       const opps = await directus.request(readItems('users', {
         filter: {
-          _or: [
-            { telegram_id: { _eq: opponentTgId.trim() } },
-            { username: { _eq: opponentTgId.trim().replace('@', '') } }
-          ]
+          username: { _eq: username }
         }
       }));
 
@@ -800,7 +839,16 @@ function App() {
           <section className="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg">
             <h3 className="text-lg font-bold mb-4">{t('battle.invite')}</h3>
             <div className="space-y-4">
-              <input type="text" placeholder={t('battle.invitePlaceholder')} className="w-full bg-indigo-500/50 border border-indigo-400 rounded-xl px-4 py-3 text-white placeholder:text-indigo-200 outline-none" value={opponentTgId} onChange={(e) => setOpponentTgId(e.target.value)} />
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-200 font-bold">@</span>
+                <input 
+                  type="text" 
+                  placeholder={t('battle.invitePlaceholder')} 
+                  className="w-full bg-indigo-500/50 border border-indigo-400 rounded-xl pl-9 pr-4 py-3 text-white placeholder:text-indigo-200 outline-none" 
+                  value={opponentTgId} 
+                  onChange={(e) => setOpponentTgId(e.target.value.replace('@', ''))} 
+                />
+              </div>
               <button onClick={startBattle} disabled={isSearchingOpponent} className="w-full bg-white text-indigo-600 py-3 rounded-xl font-bold active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                 {isSearchingOpponent ? t('common.loading') : t('battle.start')}<Swords className="w-4 h-4" />
               </button>

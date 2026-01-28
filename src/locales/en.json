@@ -77,7 +77,7 @@
     "rule3": "Winner: +100 XP | Loser: -50 XP.",
     "rule4": "Only today's progress counts.",
     "invite": "Invite Opponent",
-    "invitePlaceholder": "Telegram ID or Username",
+    "invitePlaceholder": "Username",
     "start": "Start Battle",
     "cancel": "Cancel Invitation",
     "pending": "Waiting for opponent...",
