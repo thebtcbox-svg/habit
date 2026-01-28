@@ -585,6 +585,10 @@ function App() {
       const targetOpponent = opps.find(o => o.username.toLowerCase() === username.toLowerCase());
 
       if (targetOpponent) {
+        if (!targetOpponent.premium) {
+          WebApp.showAlert(t('battle.opponentNotPremium'));
+          return;
+        }
         const newBattle = await directus.request(createItem('battles', {
           initiator_id: user.id,
           opponent_id: targetOpponent.id,
@@ -859,6 +863,20 @@ function App() {
   };
 
   const renderBattle = () => {
+    if (!user?.premium) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[70vh] text-center space-y-6 px-6 animate-in fade-in zoom-in-95">
+          <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center"><Swords className="w-12 h-12 text-slate-300" /></div>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">{t('battle.comingSoon')}</h2>
+            <p className="text-slate-500 leading-relaxed">{t('battle.premiumOnly')}</p>
+          </div>
+          <button onClick={() => setActiveTab('settings')} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-100">
+            {t('tabs.settings')}
+          </button>
+        </div>
+      );
+    }
     if (!battle) {
       return (
         <div className="space-y-6">
@@ -1127,7 +1145,7 @@ function App() {
       <nav className="fixed bottom-6 left-4 right-4 bg-white/80 backdrop-blur-md border border-slate-200 rounded-2xl p-2 flex justify-around shadow-lg z-40">
         <button onClick={() => setActiveTab('today')} className={`p-3 rounded-xl transition-colors ${activeTab === 'today' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}><CheckCircle2 className="w-6 h-6" /></button>
         <button onClick={() => setActiveTab('calendar')} className={`p-3 rounded-xl transition-colors ${activeTab === 'calendar' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}><CalendarIcon className="w-6 h-6" /></button>
-        <button onClick={() => setActiveTab('battle')} className={`p-3 rounded-xl transition-colors relative ${activeTab === 'battle' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}>
+        <button onClick={() => setActiveTab('battle')} className={`p-3 rounded-xl transition-colors relative ${activeTab === 'battle' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'} ${!user?.premium ? 'opacity-40 grayscale' : ''}`}>
           <Swords className="w-6 h-6" />
           {hasBattleNotification && <div className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-bounce" />}
         </button>
