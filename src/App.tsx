@@ -978,29 +978,62 @@ function App() {
 
       return (
         <div className="space-y-6">
-          <header className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Swords className="w-6 h-6 text-red-500" />
+          <header className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center shadow-inner">
+                <Swords className="w-6 h-6 text-red-500" />
+              </div>
               <div>
-                <h2 className="text-xl font-black uppercase tracking-tight leading-none">{t('battle.active')}</h2>
-                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{t('battle.day')} {daysActive}</p>
+                <h2 className="text-xl font-black uppercase tracking-tight leading-none text-slate-800">{t('battle.active')}</h2>
+                <p className="text-xs font-bold text-indigo-600 mt-1 uppercase tracking-widest">{t('battle.day')} {daysActive}</p>
               </div>
             </div>
-            <div className="bg-red-50 px-3 py-1 rounded-full border border-red-100"><span className="text-red-600 text-xs font-bold">LIVE</span></div>
+            <div className="bg-red-500 px-3 py-1 rounded-full animate-pulse shadow-lg shadow-red-100"><span className="text-white text-[10px] font-black tracking-tighter">LIVE</span></div>
           </header>
-          <div className="grid grid-cols-2 gap-4">
-            <div className={`p-6 rounded-3xl border-2 ${userDone ? 'bg-green-50 border-green-200' : 'bg-white border-slate-100'}`}>
-              <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center mb-4"><UserIcon className="w-5 h-5 text-indigo-600" /></div>
-              <p className="text-xs font-bold text-slate-400 uppercase mb-1">{t('battle.you')}</p><h4 className="font-bold text-slate-800 mb-4 h-10 overflow-hidden line-clamp-2">{userHabitName}</h4>
-              <div className={`text-xs font-black px-2 py-1 rounded-lg inline-block ${userDone ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-400'}`}>{userDone ? t('common.done').toUpperCase() : t('common.missed').toUpperCase()}</div>
+
+          <div className="space-y-3">
+            {/* User Card */}
+            <div className={`p-5 rounded-3xl border-2 transition-all ${userDone ? 'bg-green-50 border-green-200' : 'bg-white border-slate-100 shadow-sm'}`}>
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm"><UserIcon className="w-5 h-5 text-indigo-600" /></div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('battle.you')}</p>
+                    <p className="font-bold text-slate-800">@{user?.username}</p>
+                  </div>
+                </div>
+                <div className={`text-[10px] font-black px-3 py-1.5 rounded-full ${userDone ? 'bg-green-500 text-white shadow-md shadow-green-100' : 'bg-slate-100 text-slate-400'}`}>
+                  {userDone ? t('common.done').toUpperCase() : t('common.missed').toUpperCase()}
+                </div>
+              </div>
+              <div className="bg-white/50 rounded-2xl p-4 border border-slate-50">
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">{t('today.focusHabit')}</p>
+                <h4 className="font-bold text-slate-800 leading-tight">{userHabitName}</h4>
+              </div>
             </div>
-            <div className={`p-6 rounded-3xl border-2 ${opponentCompletedToday ? 'bg-green-50 border-green-200' : 'bg-white border-slate-100'}`}>
-              <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center mb-4"><ShieldAlert className="w-5 h-5 text-red-600" /></div>
-              <p className="text-xs font-bold text-slate-400 uppercase mb-1">{t('battle.opponent')}</p><h4 className="font-bold text-slate-800 mb-4 h-10 overflow-hidden line-clamp-2">{oppHabitName}</h4>
-              <div className={`text-xs font-black px-2 py-1 rounded-lg inline-block ${opponentCompletedToday ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-400'}`}>{opponentCompletedToday ? t('common.done').toUpperCase() : t('common.missed').toUpperCase()}</div>
+
+            {/* Opponent Card */}
+            <div className={`p-5 rounded-3xl border-2 transition-all ${opponentCompletedToday ? 'bg-green-50 border-green-200' : 'bg-white border-slate-100 shadow-sm'}`}>
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm"><ShieldAlert className="w-5 h-5 text-red-600" /></div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('battle.opponent')}</p>
+                    <p className="font-bold text-slate-800">@{opponent?.username || 'Somebody'}</p>
+                  </div>
+                </div>
+                <div className={`text-[10px] font-black px-3 py-1.5 rounded-full ${opponentCompletedToday ? 'bg-green-500 text-white shadow-md shadow-green-100' : 'bg-slate-100 text-slate-400'}`}>
+                  {opponentCompletedToday ? t('common.done').toUpperCase() : t('common.missed').toUpperCase()}
+                </div>
+              </div>
+              <div className="bg-white/50 rounded-2xl p-4 border border-slate-50">
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">{t('today.focusHabit')}</p>
+                <h4 className="font-bold text-slate-800 leading-tight">{oppHabitName}</h4>
+              </div>
             </div>
           </div>
-          <button onClick={surrenderBattle} className="w-full py-4 text-red-500 font-bold hover:bg-red-50 rounded-2xl transition-colors mt-4">
+
+          <button onClick={surrenderBattle} className="w-full py-4 text-red-500 text-sm font-bold hover:bg-red-50 rounded-2xl transition-colors">
             {t('battle.surrender')}
           </button>
 
